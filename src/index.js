@@ -1,5 +1,4 @@
 import THREE from 'three'
-window.THREE = THREE
 import DeviceOrientationControls from './DeviceOrientationControls.js'
 import OrbitControls from './OrbitControls.js'
 
@@ -28,7 +27,6 @@ const vvr = ( canvas, videourl ) => {
     let videoWidth = 0
     video.crossOrigin = 'anonymous'
     video.src = videourl
-    console.log( video )
     video.play()
 
 
