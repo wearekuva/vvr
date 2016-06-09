@@ -1,0 +1,27 @@
+<html>
+    <head>
+        <title>VVR Test</title>
+        <link href='https://fonts.googleapis.com/css?family=Roboto' rel='stylesheet' type='text/css'>
+        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+        <link rel='stylesheet' href='style.css'/>
+    </head>
+    <body>
+        <canvas id='video'/>
+        <script src="index.js"></script>
+        <script>
+
+            var canvas = document.querySelector( 'canvas' )
+            var player = vvr( canvas, 'https://streams.kolor.com/streams/e7bf77bb-77cc-47e6-92fa-dd8df9ec5851/source.05-2160p_4K_H264.mp4' )
+
+            let resize = function(){
+                player.setSize( window.innerWidth, window.innerHeight )
+            }
+
+
+            resize()
+            player.toggleMute()
+            window.addEventListener( 'resize', resize )
+
+        </script>
+    </body>
+<html>

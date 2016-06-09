@@ -1,0 +1,25 @@
+{
+  "name": "vvr",
+  "version": "1.0.0",
+  "description": "A simple lightweight 360 video player",
+  "main": "index.js",
+  "scripts": {
+    "dev": "budo src/index.js --live -- -t babelify",
+    "build": "browserify src/index.js -o index.js -t babelify"
+  },
+  "author": "Mark Lundin",
+  "license": "ISC",
+  "dependencies": {
+    "three": "^0.77.1"
+  },
+  "babel": {
+    "presets": [
+      "es2015"
+    ]
+  },
+  "devDependencies": {
+    "babel-preset-es2015": "^6.9.0",
+    "babelify": "^7.3.0",
+    "budo": "^8.3.0"
+  }
+}
