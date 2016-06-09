@@ -42847,9 +42847,6 @@ var _OrbitControls2 = _interopRequireDefault(_OrbitControls);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-window.THREE = _three2.default;
-
-
 var isPOT = function isPOT(n) {
     return (n & n - 1) === 0 && n !== 0;
 };
@@ -42874,7 +42871,6 @@ var vvr = function vvr(canvas, videourl) {
     var videoWidth = 0;
     video.crossOrigin = 'anonymous';
     video.src = videourl;
-    console.log(video);
     video.play();
 
     texture.minFilter = _three2.default.LinearFilter;
