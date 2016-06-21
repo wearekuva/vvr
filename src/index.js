@@ -55,9 +55,11 @@ const vvr = ( canvas, videourl ) => {
 
     let controls = mouseControls
 
-    window.addEventListener('deviceorientation', _ => {
-        mouseControls.enabled = false
-        controls = imuControls
+    window.addEventListener('deviceorientation', o => {
+        if( o.gamma !== null && o.alpha !== null && o.beta !== null ){
+            mouseControls.enabled = false
+            controls = imuControls
+        }
     }, false);
 
 
