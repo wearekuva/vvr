@@ -27,7 +27,7 @@ const vvr = ( canvas, videourl ) => {
     let videoWidth = 0
     video.crossOrigin = 'anonymous'
     video.src = videourl
-    video.play()
+
 
 
 
@@ -53,6 +53,14 @@ const vvr = ( canvas, videourl ) => {
     mouseControls.enableDamping = true
     mouseControls.rotateSpeed = 0.2;
 
+    let controls = mouseControls
+
+    window.addEventListener('deviceorientation', _ => {
+        mouseControls.enabled = false
+        controls = imuControls
+    //     console.log( controls )
+    }, false);
+
 
     // Silly OrbitControls don't work unless there's some distance between the camera and the origin
     camera.position.x = 0.001
@@ -68,7 +76,7 @@ const vvr = ( canvas, videourl ) => {
             }
         }
 
-        mouseControls.update(_)
+        controls.update(_)
         renderer.render( scene, camera )
         requestAnimationFrame( draw )
     }
@@ -89,9 +97,10 @@ const vvr = ( canvas, videourl ) => {
     setSize( canvas.width, canvas.height )
 
 
+    let play = _ => video.play()
 
 
-    return { setSize, toggleMute }
+    return { setSize, toggleMute, play }
 
 
 }

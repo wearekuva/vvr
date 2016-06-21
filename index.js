@@ -42871,7 +42871,6 @@ var vvr = function vvr(canvas, videourl) {
     var videoWidth = 0;
     video.crossOrigin = 'anonymous';
     video.src = videourl;
-    video.play();
 
     texture.minFilter = _three2.default.LinearFilter;
     texture.maxFilter = _three2.default.LinearFilter;
@@ -42894,6 +42893,14 @@ var vvr = function vvr(canvas, videourl) {
     mouseControls.enableDamping = true;
     mouseControls.rotateSpeed = 0.2;
 
+    var controls = mouseControls;
+
+    window.addEventListener('deviceorientation', function (_) {
+        mouseControls.enabled = false;
+        controls = imuControls;
+        //     console.log( controls )
+    }, false);
+
     // Silly OrbitControls don't work unless there's some distance between the camera and the origin
     camera.position.x = 0.001;
     scene.add(sphere);
@@ -42908,7 +42915,7 @@ var vvr = function vvr(canvas, videourl) {
             }
         }
 
-        mouseControls.update(_);
+        controls.update(_);
         renderer.render(scene, camera);
         requestAnimationFrame(draw);
     };
@@ -42928,7 +42935,11 @@ var vvr = function vvr(canvas, videourl) {
 
     setSize(canvas.width, canvas.height);
 
-    return { setSize: setSize, toggleMute: toggleMute };
+    var play = function play(_) {
+        return video.play();
+    };
+
+    return { setSize: setSize, toggleMute: toggleMute, play: play };
 };
 
 window.vvr = vvr;
