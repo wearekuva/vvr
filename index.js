@@ -42909,7 +42909,6 @@ var vvr = function vvr(canvas, videourl) {
 
         if (videoWidth == 0) {
             videoWidth = video.videoWidth;
-            console.log('sdfs');
             if (isPOT(videoWidth)) {
                 texture.minFilter = _three2.default.LinearMipMapLinearFilter;
                 texture.needsUpdate = true;
