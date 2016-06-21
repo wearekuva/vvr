@@ -1,8 +1,6 @@
 <html>
     <head>
         <title>VVR Test</title>
-        <link href='//fonts.googleapis.com/css?family=Roboto' rel='stylesheet' type='text/css'>
-        <link href="//fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
         <link rel='stylesheet' href='style.css'/>
     </head>
     <body>
@@ -17,18 +15,12 @@
                 player.setSize( window.innerWidth, window.innerHeight )
             }
 
-            try{
-                player.play( )
-            }catch(){
-                console.log( 'sdfsdfsdfsdf')
-                console.warn('Some devices require user input before playing video' )
-                window.addEventListener('click', function onClick(){
-                    console.log( 'sdfs')
-                    window.removeEventListener('click', onClick )
-                    player.play()
-                })
+            try {
+               player.play()
             }
-
+            catch (e) {
+               console.warn( 'Some devices require user input before playing videos ')
+            }
 
             resize()
             player.toggleMute()
