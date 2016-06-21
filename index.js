@@ -42898,7 +42898,6 @@ var vvr = function vvr(canvas, videourl) {
     window.addEventListener('deviceorientation', function (_) {
         mouseControls.enabled = false;
         controls = imuControls;
-        //     console.log( controls )
     }, false);
 
     // Silly OrbitControls don't work unless there's some distance between the camera and the origin
