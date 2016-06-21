@@ -16,7 +16,7 @@ const vvr = ( canvas, videourl ) => {
     }
 
 
-    let renderer = new THREE.WebGLRenderer({canvas:canvas}),
+    let renderer = new THREE.WebGLRenderer({canvas:canvas, antialias: false, alpha: false, depth: false }),
         scene = new THREE.Scene(),
         camera = new THREE.PerspectiveCamera( 75, canvas.width / canvas.height, 0.1, 1000 )
 
@@ -33,7 +33,7 @@ const vvr = ( canvas, videourl ) => {
 
     texture.minFilter = THREE.LinearFilter;
     texture.maxFilter = THREE.LinearFilter;
-    let material = new THREE.MeshBasicMaterial({ side:THREE.BackSide, map: texture })
+    let material = new THREE.MeshBasicMaterial({ side:THREE.BackSide, map: texture, depthWrite:false })
     let sphere = new THREE.Mesh( new THREE.SphereBufferGeometry( 1, 30, 30 ), material )
 
 
@@ -55,11 +55,11 @@ const vvr = ( canvas, videourl ) => {
 
     let controls = mouseControls
 
-    window.addEventListener('deviceorientation', _ => {
-        mouseControls.enabled = false
-        controls = imuControls
-    //     console.log( controls )
-    }, false);
+    // window.addEventListener('deviceorientation', _ => {
+    //     mouseControls.enabled = false
+    //     controls = imuControls
+    // //     console.log( controls )
+    // }, false);
 
 
     // Silly OrbitControls don't work unless there's some distance between the camera and the origin
