@@ -70,7 +70,6 @@ const vvr = ( canvas, videourl ) => {
 
         if( videoWidth == 0 ){
             videoWidth = video.videoWidth
-            console.log( 'sdfs')
             if( isPOT( videoWidth )){
                 texture.minFilter = THREE.LinearMipMapLinearFilter
                 texture.needsUpdate = true
