@@ -8,4 +8,10 @@ html body{
     font-size: 100px;
     color: white;
     font-family: Menlo, Inconcolata, Consolas;
+    width: 100%;
+    text-align: center;
+}
+
+.container{
+    display:flex;
 }
