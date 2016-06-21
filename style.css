@@ -2,3 +2,10 @@ html body{
     padding: 0;
     margin: 0;
 }
+
+.cta{
+    position:absolute;
+    font-size: 100px;
+    color: white;
+    font-family: Menlo, Inconcolata, Consolas;
+}

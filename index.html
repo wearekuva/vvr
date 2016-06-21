@@ -4,8 +4,11 @@
         <link rel='stylesheet' href='style.css'/>
     </head>
     <body>
-        <canvas id='video'/>
+        <div class='cta'>Click</div>
+        <canvas id='video'></canvas>
+
         <script src="index.js"></script>
+
         <script>
 
             var canvas = document.querySelector( 'canvas' )
@@ -15,14 +18,11 @@
                 player.setSize( window.innerWidth, window.innerHeight )
             }
 
-        //    player.play()
-        //     .catch(function(){
 
-              window.onclick = function(){
-                   window.onclick = null
-                //    console.warn( 'Some devices require user input before playing videos ')
-                   player.play()
-            //    }
+            window.onclick = function(){
+                window.onclick = null
+                document.querySelector('.cta').style.display = 'none'
+                player.play()
             }
 
             resize()
