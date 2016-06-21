@@ -15,13 +15,15 @@
                 player.setSize( window.innerWidth, window.innerHeight )
             }
 
-            try {
-               player.play()
-            }
-            catch (e) {
-               console.warn( 'Some devices require user input before playing videos ')
-               window.onclick = player.play
-            }
+           player.play()
+            .catch(function(){
+
+               window.onclick = function(){
+                   window.onclick = null
+                   console.warn( 'Some devices require user input before playing videos ')
+                   player.play()
+               }
+           })
 
             resize()
             player.toggleMute()
