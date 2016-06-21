@@ -42861,7 +42861,7 @@ var vvr = function vvr(canvas, videourl) {
         return null;
     }
 
-    var renderer = new _three2.default.WebGLRenderer({ canvas: canvas }),
+    var renderer = new _three2.default.WebGLRenderer({ canvas: canvas, antialias: false, alpha: false, depth: false }),
         scene = new _three2.default.Scene(),
         camera = new _three2.default.PerspectiveCamera(75, canvas.width / canvas.height, 0.1, 1000);
 
@@ -42874,7 +42874,7 @@ var vvr = function vvr(canvas, videourl) {
 
     texture.minFilter = _three2.default.LinearFilter;
     texture.maxFilter = _three2.default.LinearFilter;
-    var material = new _three2.default.MeshBasicMaterial({ side: _three2.default.BackSide, map: texture });
+    var material = new _three2.default.MeshBasicMaterial({ side: _three2.default.BackSide, map: texture, depthWrite: false });
     var sphere = new _three2.default.Mesh(new _three2.default.SphereBufferGeometry(1, 30, 30), material);
 
     // // REMAP STEREO IMAGE
@@ -42895,11 +42895,11 @@ var vvr = function vvr(canvas, videourl) {
 
     var controls = mouseControls;
 
-    window.addEventListener('deviceorientation', function (_) {
-        mouseControls.enabled = false;
-        controls = imuControls;
-        //     console.log( controls )
-    }, false);
+    // window.addEventListener('deviceorientation', _ => {
+    //     mouseControls.enabled = false
+    //     controls = imuControls
+    // //     console.log( controls )
+    // }, false);
 
     // Silly OrbitControls don't work unless there's some distance between the camera and the origin
     camera.position.x = 0.001;
