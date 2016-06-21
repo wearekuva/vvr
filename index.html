@@ -20,6 +20,7 @@
             }
             catch (e) {
                console.warn( 'Some devices require user input before playing videos ')
+               window.onclick = player.play
             }
 
             resize()
