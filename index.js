@@ -42869,8 +42869,15 @@ var vvr = function vvr(canvas, videourl) {
     var video = document.createElement('video');
     var texture = new _three2.default.VideoTexture(video);
     var videoWidth = 0;
+    video.controls = 'true';
     video.crossOrigin = 'anonymous';
-    video.src = videourl;
+    // video.src = videourl
+
+    var source = document.createElement('source');
+    source.src = videourl;
+    source.type = "video/mp4";
+    video.appendChild(source);
+    // document.body.appendChild( video )
 
     texture.minFilter = _three2.default.LinearFilter;
     texture.maxFilter = _three2.default.LinearFilter;
@@ -42911,7 +42918,7 @@ var vvr = function vvr(canvas, videourl) {
         if (videoWidth == 0) {
             videoWidth = video.videoWidth;
             if (isPOT(videoWidth)) {
-                texture.minFilter = _three2.default.LinearMipMapLinearFilter;
+                // texture.minFilter = THREE.LinearMipMapLinearFilter
                 texture.needsUpdate = true;
             }
         }
