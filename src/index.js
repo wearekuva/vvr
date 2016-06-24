@@ -25,10 +25,16 @@ const vvr = ( canvas, videourl ) => {
     var video = document.createElement('video');
     var texture = new THREE.VideoTexture( video )
     let videoWidth = 0
+    video.controls = 'true'
     video.crossOrigin = 'anonymous'
-    video.src = videourl
+    // video.src = videourl
 
 
+    let source = document.createElement( 'source')
+    source.src = videourl
+    source.type= "video/mp4"
+    video.appendChild( source )
+    // document.body.appendChild( video )
 
 
     texture.minFilter = THREE.LinearFilter;
@@ -72,14 +78,16 @@ const vvr = ( canvas, videourl ) => {
         if( videoWidth == 0 ){
             videoWidth = video.videoWidth
             if( isPOT( videoWidth )){
-                texture.minFilter = THREE.LinearMipMapLinearFilter
+                // texture.minFilter = THREE.LinearMipMapLinearFilter
                 texture.needsUpdate = true
             }
+
         }
 
         controls.update(_)
         renderer.render( scene, camera )
         requestAnimationFrame( draw )
+
     }
 
     draw( Date.now())
