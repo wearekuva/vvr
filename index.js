@@ -42833,6 +42833,79 @@ exports.default = _three2.default.OrbitControls;
 },{"three":1}],4:[function(require,module,exports){
 'use strict';
 
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _three = require('three');
+
+var _three2 = _interopRequireDefault(_three);
+
+var _renderer = require('./renderer');
+
+var _renderer2 = _interopRequireDefault(_renderer);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+exports.default = function (canvas, url) {
+
+    if (!canvas) {
+        console.error('No canvas defined');
+        return null;
+    }
+
+    // Video DOM
+    var image = document.createElement('img');
+    var texture = new _three2.default.TextureLoader().load(url, function (t) {
+
+        t.minFilter = _three2.default.LinearMipMapLinearFilter;
+        t.magFilter = _three2.default.LinearFilter;
+    });
+
+    // texture.generateMipmaps = true
+    // texture.needsUpdate = true
+
+    var _panorama = (0, _renderer2.default)(texture);
+
+    var draw = _panorama.draw;
+    var setSize = _panorama.setSize;
+
+
+    setSize(canvas.width, canvas.height);
+
+    return { setSize: setSize };
+};
+
+},{"./renderer":6,"three":1}],5:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _videoPanorama = require('./video-panorama');
+
+var _videoPanorama2 = _interopRequireDefault(_videoPanorama);
+
+var _imagePanorama = require('./image-panorama');
+
+var _imagePanorama2 = _interopRequireDefault(_imagePanorama);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var pano = { video: _videoPanorama2.default, image: _imagePanorama2.default };
+
+window.pano = pano;
+
+exports.default = pano;
+
+},{"./image-panorama":4,"./video-panorama":7}],6:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
 var _three = require('three');
 
 var _three2 = _interopRequireDefault(_three);
@@ -42847,40 +42920,15 @@ var _OrbitControls2 = _interopRequireDefault(_OrbitControls);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var isPOT = function isPOT(n) {
-    return (n & n - 1) === 0 && n !== 0;
-};
-var isNPOT = function isNPOT(n) {
-    return !isPOT(n);
-};
+exports.default = function (texture) {
 
-var vvr = function vvr(canvas, videourl) {
-
-    if (!canvas) {
-        console.error('No canvas defined');
-        return null;
-    }
+    texture.repeat.x = -1;
+    texture.wrapS = _three2.default.RepeatWrapping;
 
     var renderer = new _three2.default.WebGLRenderer({ canvas: canvas, antialias: false, alpha: false, depth: false }),
         scene = new _three2.default.Scene(),
-        camera = new _three2.default.PerspectiveCamera(75, canvas.width / canvas.height, 0.1, 1000);
+        camera = new _three2.default.PerspectiveCamera(90, canvas.width / canvas.height, 0.1, 1000);
 
-    // Video DOM
-    var video = document.createElement('video');
-    var texture = new _three2.default.VideoTexture(video);
-    var videoWidth = 0;
-    video.controls = 'true';
-    video.crossOrigin = 'anonymous';
-    // video.src = videourl
-
-    var source = document.createElement('source');
-    source.src = videourl;
-    source.type = "video/mp4";
-    video.appendChild(source);
-    // document.body.appendChild( video )
-
-    texture.minFilter = _three2.default.LinearFilter;
-    texture.maxFilter = _three2.default.LinearFilter;
     var material = new _three2.default.MeshBasicMaterial({ side: _three2.default.BackSide, map: texture, depthWrite: false });
     var sphere = new _three2.default.Mesh(new _three2.default.SphereBufferGeometry(1, 30, 30), material);
 
@@ -42915,13 +42963,14 @@ var vvr = function vvr(canvas, videourl) {
 
     var draw = function draw(_) {
 
-        if (videoWidth == 0) {
-            videoWidth = video.videoWidth;
-            if (isPOT(videoWidth)) {
-                // texture.minFilter = THREE.LinearMipMapLinearFilter
-                texture.needsUpdate = true;
-            }
-        }
+        // if( videoWidth == 0 ){
+        //     videoWidth = video.videoWidth
+        //     if( isPOT( videoWidth )){
+        //         // texture.minFilter = THREE.LinearMipMapLinearFilter
+        //         texture.needsUpdate = true
+        //     }
+        //
+        // }
 
         controls.update(_);
         renderer.render(scene, camera);
@@ -42937,6 +42986,62 @@ var vvr = function vvr(canvas, videourl) {
         renderer.setSize(w, h);
     };
 
+    return { setSize: setSize, draw: draw };
+};
+
+},{"./DeviceOrientationControls.js":2,"./OrbitControls.js":3,"three":1}],7:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _three = require('three');
+
+var _three2 = _interopRequireDefault(_three);
+
+var _renderer = require('./renderer');
+
+var _renderer2 = _interopRequireDefault(_renderer);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var isPOT = function isPOT(n) {
+    return (n & n - 1) === 0 && n !== 0;
+};
+var isNPOT = function isNPOT(n) {
+    return !isPOT(n);
+};
+
+exports.default = function (canvas, url) {
+
+    if (!canvas) {
+        console.error('No canvas defined');
+        return null;
+    }
+
+    // Video DOM
+    var video = document.createElement('video');
+    var texture = new _three2.default.VideoTexture(video);
+    var videoWidth = 0;
+    video.controls = 'true';
+    video.crossOrigin = 'anonymous';
+    video.src = videourl;
+
+    // let source = document.createElement( 'source')
+    // source.src = url
+    // source.type= "application/x-mpegURL"
+    // video.appendChild( source )
+
+    texture.minFilter = _three2.default.LinearFilter;
+    texture.maxFilter = _three2.default.LinearFilter;
+
+    var _panorama = (0, _renderer2.default)(texture);
+
+    var draw = _panorama.draw;
+    var setSize = _panorama.setSize;
+
+
     var toggleMute = function toggleMute(_) {
         return video.muted = !video.muted;
     };
@@ -42950,6 +43055,4 @@ var vvr = function vvr(canvas, videourl) {
     return { setSize: setSize, toggleMute: toggleMute, play: play };
 };
 
-window.vvr = vvr;
-
-},{"./DeviceOrientationControls.js":2,"./OrbitControls.js":3,"three":1}]},{},[4]);
+},{"./renderer":6,"three":1}]},{},[5]);
