@@ -2,7 +2,6 @@
   "name": "vvr",
   "version": "1.0.0",
   "description": "A simple lightweight 360 video player",
-  "main": "index.js",
   "scripts": {
     "dev": "budo src/index.js --live -- -t babelify",
     "build": "browserify src/index.js -o index.js -t babelify"
