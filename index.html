@@ -13,40 +13,70 @@
 
         <script>
 
+            /*
+                Util for returning query string paramaters
+            */
 
-            function getParam( name ){
+            function urlparam( name ){
 
                 name = name.replace(/[\[]/,"\\\[").replace(/[\]]/,"\\\]");
-                var regexS = "[\\?&]"+name+"=([^&#]*)";
-                var regex = new RegExp( regexS );
-                var results = regex.exec( window.location.href );
-                if( results == null )
-                    return null;
-                else
-                    return results[1];
+                var results = new RegExp( "[\\?&]"+name+"=([^&#]*)" ).exec( window.location.href );
+                return results ? results[1] : null
             }
 
-            var videourl = getParam( 'url' ) || 'https://streams.kolor.com/streams/e7bf77bb-77cc-47e6-92fa-dd8df9ec5851/source.05-2160p_4K_H264.mp4'
 
-            console.log( 'Loading video:', videourl )
+            /*
+                Use any pano defined on the query string, otherwise use a default
+            */
+            var url = urlparam( 'url' ) || 'coral.jpg'
+            console.log( 'Loading panorama:', url )
 
+
+            /*
+                Determine the whether an image or a video
+            */
+            var isImage = (/\.(jpg|jpeg|png)$/i).test( url )
+
+
+            /*
+                Fetch the canvas element, select an appropritate viewer,
+                and initialise the panorama
+            */
             var canvas = document.querySelector( 'canvas' )
-            var player = vvr( canvas, videourl )
+            var Viewer = isImage ? pano.image : pano.video
+            var player = Viewer( canvas, url )
 
+
+            /*
+                Create a resize method that defaults to the page dimension
+            */
             var resize = function(){
                 player.setSize( window.innerWidth, window.innerHeight )
             }
 
+            window.addEventListener( 'resize', resize )
+            resize()
 
-            window.onclick = function(){
-                window.onclick = null
+
+
+            /*
+                If we're rendering an video panorama, then we need to start
+                playing it. If not, then disable the CTA
+            */
+
+            if( isImage ){
+
                 document.querySelector('.cta').style.display = 'none'
-                player.play()
+
+            }else{
+                player.toggleMute()
+                window.onclick = function(){
+                    window.onclick = null
+                    document.querySelector('.cta').style.display = 'none'
+                    player.play()
+                }
             }
 
-            resize()
-            player.toggleMute()
-            window.addEventListener( 'resize', resize )
 
         </script>
     </body>
