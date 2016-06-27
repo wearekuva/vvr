@@ -120,16 +120,7 @@ export default ( texture ) => {
     scene.add( sphere )
 
     let draw = _ => {
-
-        // if( videoWidth == 0 ){
-        //     videoWidth = video.videoWidth
-        //     if( isPOT( videoWidth )){
-        //         // texture.minFilter = THREE.LinearMipMapLinearFilter
-        //         texture.needsUpdate = true
-        //     }
-        //
-        // }
-
+        
         controls.update(_)
         renderer.render( scene, camera )
         requestAnimationFrame( draw )
