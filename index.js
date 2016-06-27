@@ -42922,14 +42922,19 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 exports.default = function (texture) {
 
-    texture.repeat.x = -1;
-    texture.wrapS = _three2.default.RepeatWrapping;
-
     var renderer = new _three2.default.WebGLRenderer({ canvas: canvas, antialias: false, alpha: false, depth: false }),
         scene = new _three2.default.Scene(),
         camera = new _three2.default.PerspectiveCamera(90, canvas.width / canvas.height, 0.1, 1000);
 
+    var uniforms = _three2.default.UniformsUtils.merge([_three2.default.ShaderLib.basic.uniforms]);
     var material = new _three2.default.MeshBasicMaterial({ side: _three2.default.BackSide, map: texture, depthWrite: false });
+    material.type = 'ShaderMaterial';
+    material.uniforms = uniforms;
+    material.uniforms = uniforms;
+    material.vertexShader = _three2.default.ShaderLib.basic.vertexShader;
+    material.fragmentShader = '\n\n        uniform vec3 diffuse;\n        uniform float opacity;\n\n        #ifndef FLAT_SHADED\n\n        varying vec3 vNormal;\n\n        #endif\n\n        #include <common>\n        #include <color_pars_fragment>\n        #include <uv_pars_fragment>\n        #include <uv2_pars_fragment>\n        #include <map_pars_fragment>\n        #include <alphamap_pars_fragment>\n        #include <aomap_pars_fragment>\n        #include <envmap_pars_fragment>\n        #include <fog_pars_fragment>\n        #include <specularmap_pars_fragment>\n        #include <logdepthbuf_pars_fragment>\n        #include <clipping_planes_pars_fragment>\n\n        void main() {\n\n        #include <clipping_planes_fragment>\n\n        vec4 diffuseColor = vec4( diffuse, opacity );\n\n        #include <logdepthbuf_fragment>\n        #ifdef USE_MAP\n\n            vec2 inVUv = vUv;\n            inVUv.x = 1.0 - inVUv.x;\n        \tvec4 texelColor = texture2D( map, inVUv );\n\n        \ttexelColor = mapTexelToLinear( texelColor );\n        \tdiffuseColor *= texelColor;\n\n        #endif\n        #include <color_fragment>\n        #include <alphamap_fragment>\n        #include <alphatest_fragment>\n        #include <specularmap_fragment>\n\n        ReflectedLight reflectedLight;\n        reflectedLight.directDiffuse = vec3( 0.0 );\n        reflectedLight.directSpecular = vec3( 0.0 );\n        reflectedLight.indirectDiffuse = diffuseColor.rgb;\n        reflectedLight.indirectSpecular = vec3( 0.0 );\n\n        #include <aomap_fragment>\n\n        vec3 outgoingLight = reflectedLight.indirectDiffuse;\n\n        #include <envmap_fragment>\n\n        gl_FragColor = vec4( outgoingLight, diffuseColor.a );\n\n        #include <premultiplied_alpha_fragment>\n        #include <tonemapping_fragment>\n        #include <encodings_fragment>\n        #include <fog_fragment>\n\n        }\n    ';
+    material;
+
     var sphere = new _three2.default.Mesh(new _three2.default.SphereBufferGeometry(1, 30, 30), material);
 
     // // REMAP STEREO IMAGE
@@ -43026,7 +43031,7 @@ exports.default = function (canvas, url) {
     var videoWidth = 0;
     video.controls = 'true';
     video.crossOrigin = 'anonymous';
-    video.src = videourl;
+    video.src = url;
 
     // let source = document.createElement( 'source')
     // source.src = url
@@ -43034,7 +43039,7 @@ exports.default = function (canvas, url) {
     // video.appendChild( source )
 
     texture.minFilter = _three2.default.LinearFilter;
-    texture.maxFilter = _three2.default.LinearFilter;
+    texture.magFilter = _three2.default.LinearFilter;
 
     var _panorama = (0, _renderer2.default)(texture);
 
