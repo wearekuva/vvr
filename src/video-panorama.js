@@ -19,7 +19,7 @@ export default ( canvas, url ) => {
     let videoWidth = 0
     video.controls = 'true'
     video.crossOrigin = 'anonymous'
-    video.src = videourl
+    video.src = url
 
     // let source = document.createElement( 'source')
     // source.src = url
@@ -27,7 +27,7 @@ export default ( canvas, url ) => {
     // video.appendChild( source )
 
     texture.minFilter = THREE.LinearFilter;
-    texture.maxFilter = THREE.LinearFilter;
+    texture.magFilter = THREE.LinearFilter;
 
 
     let { draw, setSize } = panorama( texture )
