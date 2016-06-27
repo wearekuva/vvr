@@ -1,4 +1,4 @@
-## 360 panoramic viewer
+## Pano viewer
 
 ### Usage
 Install
