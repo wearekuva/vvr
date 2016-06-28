@@ -41873,14 +41873,6 @@ var _three2 = _interopRequireDefault(_three);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-/**
- * @author qiao / https://github.com/qiao
- * @author mrdoob / http://mrdoob.com
- * @author alteredq / http://alteredqualia.com/
- * @author WestLangley / http://github.com/WestLangley
- * @author erich666 / http://erichaines.com
- */
-
 // This set of controls performs orbiting, dollying (zooming), and panning.
 // Unlike TrackballControls, it maintains the "up" direction object.up (+Y by default).
 //
@@ -42869,11 +42861,12 @@ exports.default = function (canvas, url) {
 
     var draw = _panorama.draw;
     var setSize = _panorama.setSize;
+    var toggleStereo = _panorama.toggleStereo;
 
 
     setSize(canvas.width, canvas.height);
 
-    return { setSize: setSize };
+    return { setSize: setSize, toggleStereo: toggleStereo };
 };
 
 },{"./renderer":6,"three":1}],5:[function(require,module,exports){
@@ -42899,7 +42892,7 @@ window.pano = pano;
 
 exports.default = pano;
 
-},{"./image-panorama":4,"./video-panorama":7}],6:[function(require,module,exports){
+},{"./image-panorama":4,"./video-panorama":8}],6:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -42918,13 +42911,20 @@ var _OrbitControls = require('./OrbitControls.js');
 
 var _OrbitControls2 = _interopRequireDefault(_OrbitControls);
 
+var _stereo = require('./stereo.js');
+
+var _stereo2 = _interopRequireDefault(_stereo);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 exports.default = function (texture) {
 
     var renderer = new _three2.default.WebGLRenderer({ canvas: canvas, antialias: false, alpha: false, depth: false }),
         scene = new _three2.default.Scene(),
+        stereo = new _three2.default.StereoEffect(renderer),
         camera = new _three2.default.PerspectiveCamera(90, canvas.width / canvas.height, 0.1, 1000);
+
+    var useStereo = false;
 
     var uniforms = _three2.default.UniformsUtils.merge([_three2.default.ShaderLib.basic.uniforms]);
     var material = new _three2.default.MeshBasicMaterial({ side: _three2.default.BackSide, map: texture, depthWrite: false });
@@ -42933,7 +42933,6 @@ exports.default = function (texture) {
     material.uniforms = uniforms;
     material.vertexShader = _three2.default.ShaderLib.basic.vertexShader;
     material.fragmentShader = '\n\n        uniform vec3 diffuse;\n        uniform float opacity;\n\n        #ifndef FLAT_SHADED\n\n        varying vec3 vNormal;\n\n        #endif\n\n        #include <common>\n        #include <color_pars_fragment>\n        #include <uv_pars_fragment>\n        #include <uv2_pars_fragment>\n        #include <map_pars_fragment>\n        #include <alphamap_pars_fragment>\n        #include <aomap_pars_fragment>\n        #include <envmap_pars_fragment>\n        #include <fog_pars_fragment>\n        #include <specularmap_pars_fragment>\n        #include <logdepthbuf_pars_fragment>\n        #include <clipping_planes_pars_fragment>\n\n        void main() {\n\n        #include <clipping_planes_fragment>\n\n        vec4 diffuseColor = vec4( diffuse, opacity );\n\n        #include <logdepthbuf_fragment>\n        #ifdef USE_MAP\n\n            vec2 inVUv = vUv;\n            inVUv.x = 1.0 - inVUv.x;\n        \tvec4 texelColor = texture2D( map, inVUv );\n\n        \ttexelColor = mapTexelToLinear( texelColor );\n        \tdiffuseColor *= texelColor;\n\n        #endif\n        #include <color_fragment>\n        #include <alphamap_fragment>\n        #include <alphatest_fragment>\n        #include <specularmap_fragment>\n\n        ReflectedLight reflectedLight;\n        reflectedLight.directDiffuse = vec3( 0.0 );\n        reflectedLight.directSpecular = vec3( 0.0 );\n        reflectedLight.indirectDiffuse = diffuseColor.rgb;\n        reflectedLight.indirectSpecular = vec3( 0.0 );\n\n        #include <aomap_fragment>\n\n        vec3 outgoingLight = reflectedLight.indirectDiffuse;\n\n        #include <envmap_fragment>\n\n        gl_FragColor = vec4( outgoingLight, diffuseColor.a );\n\n        #include <premultiplied_alpha_fragment>\n        #include <tonemapping_fragment>\n        #include <encodings_fragment>\n        #include <fog_fragment>\n\n        }\n    ';
-    material;
 
     var sphere = new _three2.default.Mesh(new _three2.default.SphereBufferGeometry(1, 30, 30), material);
 
@@ -42969,7 +42968,7 @@ exports.default = function (texture) {
     var draw = function draw(_) {
 
         controls.update(_);
-        renderer.render(scene, camera);
+        useStereo ? stereo.render(scene, camera) : renderer.render(scene, camera);
         requestAnimationFrame(draw);
     };
 
@@ -42982,10 +42981,73 @@ exports.default = function (texture) {
         renderer.setSize(w, h);
     };
 
-    return { setSize: setSize, draw: draw };
+    var toggleStereo = function toggleStereo(_) {
+        return useStereo = !useStereo;
+    };
+
+    return { setSize: setSize, draw: draw, toggleStereo: toggleStereo };
 };
 
-},{"./DeviceOrientationControls.js":2,"./OrbitControls.js":3,"three":1}],7:[function(require,module,exports){
+},{"./DeviceOrientationControls.js":2,"./OrbitControls.js":3,"./stereo.js":7,"three":1}],7:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+
+var _three = require('three');
+
+var _three2 = _interopRequireDefault(_three);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+/**
+ * @author alteredq / http://alteredqualia.com/
+ * @authod mrdoob / http://mrdoob.com/
+ * @authod arodic / http://aleksandarrodic.com/
+ * @authod fonserbc / http://fonserbc.github.io/
+*/
+
+_three2.default.StereoEffect = function (renderer) {
+
+	var _stereo = new _three2.default.StereoCamera();
+	_stereo.aspect = 0.5;
+
+	this.setSize = function (width, height) {
+
+		renderer.setSize(width, height);
+	};
+
+	this.render = function (scene, camera) {
+
+		scene.updateMatrixWorld();
+
+		if (camera.parent === null) camera.updateMatrixWorld();
+
+		_stereo.update(camera);
+
+		var size = renderer.getSize();
+
+		renderer.setScissorTest(true);
+		renderer.clear();
+
+		renderer.setScissor(0, 0, size.width / 2, size.height);
+		renderer.setViewport(0, 0, size.width / 2, size.height);
+		renderer.render(scene, _stereo.cameraL);
+
+		renderer.setScissor(size.width / 2, 0, size.width / 2, size.height);
+		renderer.setViewport(size.width / 2, 0, size.width / 2, size.height);
+		renderer.render(scene, _stereo.cameraR);
+
+		renderer.setScissor(0, 0, size.width, size.height);
+		renderer.setViewport(0, 0, size.width, size.height);
+
+		renderer.setScissorTest(false);
+	};
+};
+exports.default = _three2.default.StereoEffect;
+
+},{"three":1}],8:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -43036,6 +43098,7 @@ exports.default = function (canvas, url) {
 
     var draw = _panorama.draw;
     var setSize = _panorama.setSize;
+    var toggleStereo = _panorama.toggleStereo;
 
 
     var toggleMute = function toggleMute(_) {
@@ -43048,7 +43111,7 @@ exports.default = function (canvas, url) {
         return video.play();
     };
 
-    return { setSize: setSize, toggleMute: toggleMute, play: play };
+    return { setSize: setSize, toggleMute: toggleMute, play: play, toggleStereo: toggleStereo };
 };
 
 },{"./renderer":6,"three":1}]},{},[5]);
