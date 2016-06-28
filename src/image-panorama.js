@@ -24,12 +24,12 @@ export default ( canvas, url ) => {
     // texture.needsUpdate = true
 
 
-    let { draw, setSize } = panorama( texture )
+    let { draw, setSize, toggleStereo } = panorama( texture )
 
 
     setSize( canvas.width, canvas.height )
 
 
-    return { setSize }
+    return { setSize, toggleStereo }
 
 }
