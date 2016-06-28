@@ -1,6 +1,7 @@
 import THREE from 'three'
 import DeviceOrientationControls from './DeviceOrientationControls.js'
 import OrbitControls from './OrbitControls.js'
+import stereo from './stereo.js'
 
 
 export default ( texture ) => {
@@ -8,8 +9,10 @@ export default ( texture ) => {
 
     let renderer = new THREE.WebGLRenderer({canvas:canvas, antialias: false, alpha: false, depth: false }),
         scene = new THREE.Scene(),
+        stereo = new THREE.StereoEffect( renderer ),
         camera = new THREE.PerspectiveCamera( 90, canvas.width / canvas.height, 0.1, 1000 )
 
+    let useStereo = false
 
     var uniforms = THREE.UniformsUtils.merge([THREE.ShaderLib.basic.uniforms]);
     let material = new THREE.MeshBasicMaterial({ side: THREE.BackSide, map: texture, depthWrite:false })
@@ -84,7 +87,7 @@ export default ( texture ) => {
 
         }
     `
-    material
+
 
     let sphere = new THREE.Mesh( new THREE.SphereBufferGeometry( 1, 30, 30 ), material )
 
@@ -120,9 +123,9 @@ export default ( texture ) => {
     scene.add( sphere )
 
     let draw = _ => {
-        
+
         controls.update(_)
-        renderer.render( scene, camera )
+        useStereo ? stereo.render( scene, camera ) :  renderer.render( scene, camera )
         requestAnimationFrame( draw )
 
     }
@@ -139,8 +142,10 @@ export default ( texture ) => {
 
     }
 
+    let toggleStereo = _ => useStereo = !useStereo
 
-    return { setSize, draw }
+
+    return { setSize, draw, toggleStereo }
 
 
 }

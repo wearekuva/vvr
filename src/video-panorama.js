@@ -30,7 +30,7 @@ export default ( canvas, url ) => {
     texture.magFilter = THREE.LinearFilter;
 
 
-    let { draw, setSize } = panorama( texture )
+    let { draw, setSize, toggleStereo } = panorama( texture )
 
     let toggleMute = _ => video.muted = !video.muted
 
@@ -38,6 +38,6 @@ export default ( canvas, url ) => {
 
     let play = _ => video.play()
 
-    return { setSize, toggleMute, play }
+    return { setSize, toggleMute, play, toggleStereo }
 
 }
