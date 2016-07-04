@@ -43208,6 +43208,7 @@ exports.default = function (canvas, url) {
     var image = document.createElement('img');
     var texture = new _three2.default.TextureLoader().load(url, function (t) {
 
+        t.generateMipmaps = true;
         t.minFilter = _three2.default.LinearMipMapLinearFilter;
         t.magFilter = _three2.default.LinearFilter;
     });
