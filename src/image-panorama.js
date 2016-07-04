@@ -14,6 +14,7 @@ export default ( canvas, url ) => {
     var image = document.createElement('img');
     var texture = new THREE.TextureLoader().load( url, t => {
 
+        t.generateMipmaps = true
         t.minFilter = THREE.LinearMipMapLinearFilter;
         t.magFilter = THREE.LinearFilter;
 
