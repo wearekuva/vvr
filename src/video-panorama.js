@@ -16,7 +16,7 @@ export default ( canvas, url ) => {
 
     // Video DOM
     var video = document.createElement('video');
-    makeVideoPlayableInline( video )
+    // makeVideoPlayableInline( video )
     var texture = new THREE.VideoTexture( video )
     video.webkitPlaysinline = 'true'
     video.crossOrigin = 'anonymous'
@@ -33,11 +33,11 @@ export default ( canvas, url ) => {
 
     let { setSize, toggleStereo } = panorama( texture )
 
-    let r = _ => {
-        console.log( video.videoWidth )
-        requestAnimationFrame( r )
-    }
-    r()
+    // let r = _ => {
+    //     console.log( video.videoWidth )
+    //     requestAnimationFrame( r )
+    // }
+    // r()
 
 
     let toggleMute = _ => video.muted = !video.muted
