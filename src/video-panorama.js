@@ -1,5 +1,6 @@
 import THREE from 'three'
 import panorama from './renderer'
+import makeVideoPlayableInline from 'iphone-inline-video'
 
 
 let isPOT = n => ( n & ( n - 1 )) === 0 && n !== 0
@@ -15,9 +16,9 @@ export default ( canvas, url ) => {
 
     // Video DOM
     var video = document.createElement('video');
+    // makeVideoPlayableInline( video )
     var texture = new THREE.VideoTexture( video )
-    let videoWidth = 0
-    video.controls = 'true'
+    video.webkitPlaysinline = 'true'
     video.crossOrigin = 'anonymous'
     video.src = url
 
@@ -30,7 +31,14 @@ export default ( canvas, url ) => {
     texture.magFilter = THREE.LinearFilter;
 
 
-    let { draw, setSize, toggleStereo } = panorama( texture )
+    let { setSize, toggleStereo } = panorama( texture )
+
+    // let r = _ => {
+    //     console.log( video.videoWidth )
+    //     requestAnimationFrame( r )
+    // }
+    // r()
+
 
     let toggleMute = _ => video.muted = !video.muted
 

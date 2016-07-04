@@ -6,6 +6,9 @@ import stereo from './stereo.js'
 
 export default ( texture ) => {
 
+    texture.generateMipmaps = false
+    texture.magFilter = THREE.LinearFilter
+    texture.minFilter = THREE.LinearFilter
 
     let renderer = new THREE.WebGLRenderer({canvas:canvas, antialias: false, alpha: false, depth: false }),
         scene = new THREE.Scene(),
@@ -15,7 +18,7 @@ export default ( texture ) => {
     let useStereo = false
 
     var uniforms = THREE.UniformsUtils.merge([THREE.ShaderLib.basic.uniforms]);
-    let material = new THREE.MeshBasicMaterial({ side: THREE.BackSide, map: texture, depthWrite:false })
+    let material = new THREE.MeshBasicMaterial({ side: THREE.BackSide, map: texture, depthWrite:false, depthTest:false , transparent:false })
     material.type = 'ShaderMaterial'
     material.uniforms = uniforms
     material.uniforms = uniforms
@@ -36,21 +39,17 @@ export default ( texture ) => {
         #include <uv_pars_fragment>
         #include <uv2_pars_fragment>
         #include <map_pars_fragment>
-        #include <alphamap_pars_fragment>
-        #include <aomap_pars_fragment>
-        #include <envmap_pars_fragment>
-        #include <fog_pars_fragment>
-        #include <specularmap_pars_fragment>
-        #include <logdepthbuf_pars_fragment>
-        #include <clipping_planes_pars_fragment>
+
+
+
 
         void main() {
 
-        #include <clipping_planes_fragment>
+
 
         vec4 diffuseColor = vec4( diffuse, opacity );
 
-        #include <logdepthbuf_fragment>
+
         #ifdef USE_MAP
 
             vec2 inVUv = vUv;
@@ -61,10 +60,10 @@ export default ( texture ) => {
         	diffuseColor *= texelColor;
 
         #endif
-        #include <color_fragment>
-        #include <alphamap_fragment>
-        #include <alphatest_fragment>
-        #include <specularmap_fragment>
+
+
+
+
 
         ReflectedLight reflectedLight;
         reflectedLight.directDiffuse = vec3( 0.0 );
@@ -72,18 +71,13 @@ export default ( texture ) => {
         reflectedLight.indirectDiffuse = diffuseColor.rgb;
         reflectedLight.indirectSpecular = vec3( 0.0 );
 
-        #include <aomap_fragment>
+
 
         vec3 outgoingLight = reflectedLight.indirectDiffuse;
 
-        #include <envmap_fragment>
+
 
         gl_FragColor = vec4( outgoingLight, diffuseColor.a );
-
-        #include <premultiplied_alpha_fragment>
-        #include <tonemapping_fragment>
-        #include <encodings_fragment>
-        #include <fog_fragment>
 
         }
     `
