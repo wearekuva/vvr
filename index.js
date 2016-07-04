@@ -1,4 +1,362 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+/*! npm.im/iphone-inline-video */
+'use strict';
+
+function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
+
+var Symbol = _interopDefault(require('poor-mans-symbol'));
+
+function Intervalometer(cb) {
+	var rafId;
+	var previousLoopTime;
+	function loop(now) {
+		// must be requested before cb() because that might call .stop()
+		rafId = requestAnimationFrame(loop);
+		cb(now - (previousLoopTime || now)); // ms since last call. 0 on start()
+		previousLoopTime = now;
+	}
+	this.start = function () {
+		if (!rafId) { // prevent double starts
+			loop(0);
+		}
+	};
+	this.stop = function () {
+		cancelAnimationFrame(rafId);
+		rafId = null;
+		previousLoopTime = 0;
+	};
+}
+
+function preventEvent(element, eventName, toggleProperty, preventWithProperty) {
+	function handler(e) {
+		if (Boolean(element[toggleProperty]) === Boolean(preventWithProperty)) {
+			e.stopImmediatePropagation();
+			// console.log(eventName, 'prevented on', element);
+		}
+		delete element[toggleProperty];
+	}
+	element.addEventListener(eventName, handler, false);
+
+	// Return handler to allow to disable the prevention. Usage:
+	// const preventionHandler = preventEvent(el, 'click');
+	// el.removeEventHandler('click', preventionHandler);
+	return handler;
+}
+
+function proxyProperty(object, propertyName, sourceObject, copyFirst) {
+	function get() {
+		return sourceObject[propertyName];
+	}
+	function set(value) {
+		sourceObject[propertyName] = value;
+	}
+
+	if (copyFirst) {
+		set(object[propertyName]);
+	}
+
+	Object.defineProperty(object, propertyName, {get: get, set: set});
+}
+
+function proxyEvent(object, eventName, sourceObject) {
+	sourceObject.addEventListener(eventName, function () { return object.dispatchEvent(new Event(eventName)); });
+}
+
+function dispatchEventAsync(element, type) {
+	Promise.resolve().then(function () {
+		element.dispatchEvent(new Event(type));
+	});
+}
+
+// iOS 10 adds support for native inline playback + silent autoplay
+// Also adds unprefixed css-grid. This check essentially excludes
+var isWhitelisted = /iPhone|iPod/i.test(navigator.userAgent) && document.head.style.grid === undefined;
+
+var ಠ = Symbol();
+var ಠevent = Symbol();
+var ಠplay = Symbol('nativeplay');
+var ಠpause = Symbol('nativepause');
+
+/**
+ * UTILS
+ */
+
+function getAudioFromVideo(video) {
+	var audio = new Audio();
+	proxyEvent(video, 'play', audio);
+	proxyEvent(video, 'playing', audio);
+	proxyEvent(video, 'pause', audio);
+	audio.crossOrigin = video.crossOrigin;
+
+	// 'data:' causes audio.networkState > 0
+	// which then allows to keep <audio> in a resumable playing state
+	// i.e. once you set a real src it will keep playing if it was if .play() was called
+	audio.src = video.src || video.currentSrc || 'data:';
+
+	// if (audio.src === 'data:') {
+	//   TODO: wait for video to be selected
+	// }
+	return audio;
+}
+
+var lastRequests = [];
+var requestIndex = 0;
+var lastTimeupdateEvent;
+
+function setTime(video, time, rememberOnly) {
+	// allow one timeupdate event every 200+ ms
+	if ((lastTimeupdateEvent || 0) + 200 < Date.now()) {
+		video[ಠevent] = true;
+		lastTimeupdateEvent = Date.now();
+	}
+	if (!rememberOnly) {
+		video.currentTime = time;
+	}
+	lastRequests[++requestIndex % 3] = time * 100 | 0 / 100;
+}
+
+function isPlayerEnded(player) {
+	return player.driver.currentTime >= player.video.duration;
+}
+
+function update(timeDiff) {
+	var player = this;
+	// console.log('update', player.video.readyState, player.video.networkState, player.driver.readyState, player.driver.networkState, player.driver.paused);
+	if (player.video.readyState >= player.video.HAVE_FUTURE_DATA) {
+		if (!player.hasAudio) {
+			player.driver.currentTime = player.video.currentTime + (timeDiff * player.video.playbackRate) / 1000;
+			if (player.video.loop && isPlayerEnded(player)) {
+				player.driver.currentTime = 0;
+			}
+		}
+		setTime(player.video, player.driver.currentTime);
+	} else if (player.video.networkState === player.video.NETWORK_IDLE && !player.video.buffered.length) {
+		// this should happen when the source is available but:
+		// - it's potentially playing (.paused === false)
+		// - it's not ready to play
+		// - it's not loading
+		// If it hasAudio, that will be loaded in the 'emptied' handler below
+		player.video.load();
+		// console.log('Will load');
+	}
+
+	// console.assert(player.video.currentTime === player.driver.currentTime, 'Video not updating!');
+
+	if (player.video.ended) {
+		delete player.video[ಠevent]; // allow timeupdate event
+		player.video.pause(true);
+	}
+}
+
+/**
+ * METHODS
+ */
+
+function play() {
+	// console.log('play');
+	var video = this;
+	var player = video[ಠ];
+
+	// if it's fullscreen, use the native player
+	if (video.webkitDisplayingFullscreen) {
+		video[ಠplay]();
+		return;
+	}
+
+	if (player.driver.src !== 'data:' && player.driver.src !== video.src) {
+		// console.log('src changed on play', video.src);
+		setTime(video, 0, true);
+		player.driver.src = video.src;
+	}
+
+	if (!video.paused) {
+		return;
+	}
+	player.paused = false;
+
+	if (!video.buffered.length) {
+		// .load() causes the emptied event
+		// the alternative is .play()+.pause() but that triggers play/pause events, even worse
+		// possibly the alternative is preventing this event only once
+		video.load();
+	}
+
+	player.driver.play();
+	player.updater.start();
+
+	if (!player.hasAudio) {
+		dispatchEventAsync(video, 'play');
+		if (player.video.readyState >= player.video.HAVE_ENOUGH_DATA) {
+			// console.log('onplay');
+			dispatchEventAsync(video, 'playing');
+		}
+	}
+}
+function pause(forceEvents) {
+	// console.log('pause');
+	var video = this;
+	var player = video[ಠ];
+
+	player.driver.pause();
+	player.updater.stop();
+
+	// if it's fullscreen, the developer the native player.pause()
+	// This is at the end of pause() because it also
+	// needs to make sure that the simulation is paused
+	if (video.webkitDisplayingFullscreen) {
+		video[ಠpause]();
+	}
+
+	if (player.paused && !forceEvents) {
+		return;
+	}
+
+	player.paused = true;
+	if (!player.hasAudio) {
+		dispatchEventAsync(video, 'pause');
+	}
+	if (video.ended) {
+		video[ಠevent] = true;
+		dispatchEventAsync(video, 'ended');
+	}
+}
+
+/**
+ * SETUP
+ */
+
+function addPlayer(video, hasAudio) {
+	var player = video[ಠ] = {};
+	player.paused = true; // track whether 'pause' events have been fired
+	player.hasAudio = hasAudio;
+	player.video = video;
+	player.updater = new Intervalometer(update.bind(player));
+
+	if (hasAudio) {
+		player.driver = getAudioFromVideo(video);
+	} else {
+		video.addEventListener('canplay', function () {
+			if (!video.paused) {
+				// console.log('oncanplay');
+				dispatchEventAsync(video, 'playing');
+			}
+		});
+		player.driver = {
+			src: video.src || video.currentSrc || 'data:',
+			muted: true,
+			paused: true,
+			pause: function () {
+				player.driver.paused = true;
+			},
+			play: function () {
+				player.driver.paused = false;
+				// media automatically goes to 0 if .play() is called when it's done
+				if (isPlayerEnded(player)) {
+					setTime(video, 0);
+				}
+			},
+			get ended() {
+				return isPlayerEnded(player);
+			}
+		};
+	}
+
+	// .load() causes the emptied event
+	video.addEventListener('emptied', function () {
+		// console.log('driver src is', player.driver.src);
+		var wasEmpty = !player.driver.src || player.driver.src === 'data:';
+		if (player.driver.src && player.driver.src !== video.src) {
+			// console.log('src changed to', video.src);
+			setTime(video, 0, true);
+			player.driver.src = video.src;
+			// playing videos will only keep playing if no src was present when .play()’ed
+			if (wasEmpty) {
+				player.driver.play();
+			} else {
+				player.updater.stop();
+			}
+		}
+	}, false);
+
+	// stop programmatic player when OS takes over
+	video.addEventListener('webkitbeginfullscreen', function () {
+		if (!video.paused) {
+			// make sure that the <audio> and the syncer/updater are stopped
+			video.pause();
+
+			// play video natively
+			video[ಠplay]();
+		} else if (hasAudio && !player.driver.buffered.length) {
+			// if the first play is native,
+			// the <audio> needs to be buffered manually
+			// so when the fullscreen ends, it can be set to the same current time
+			player.driver.load();
+		}
+	});
+	if (hasAudio) {
+		video.addEventListener('webkitendfullscreen', function () {
+			// sync audio to new video position
+			player.driver.currentTime = video.currentTime;
+			// console.assert(player.driver.currentTime === video.currentTime, 'Audio not synced');
+		});
+
+		// allow seeking
+		video.addEventListener('seeking', function () {
+			if (lastRequests.indexOf(video.currentTime * 100 | 0 / 100) < 0) {
+				// console.log('User-requested seeking');
+				player.driver.currentTime = video.currentTime;
+			}
+		});
+	}
+}
+
+function overloadAPI(video) {
+	var player = video[ಠ];
+	video[ಠplay] = video.play;
+	video[ಠpause] = video.pause;
+	video.play = play;
+	video.pause = pause;
+	proxyProperty(video, 'paused', player.driver);
+	proxyProperty(video, 'muted', player.driver, true);
+	proxyProperty(video, 'playbackRate', player.driver, true);
+	proxyProperty(video, 'ended', player.driver);
+	proxyProperty(video, 'loop', player.driver, true);
+	preventEvent(video, 'seeking');
+	preventEvent(video, 'seeked');
+	preventEvent(video, 'timeupdate', ಠevent, false);
+	preventEvent(video, 'ended', ಠevent, false); // prevent occasional native ended events
+}
+
+function enableInlineVideo(video, hasAudio, onlyWhitelisted) {
+	if ( hasAudio === void 0 ) hasAudio = true;
+	if ( onlyWhitelisted === void 0 ) onlyWhitelisted = true;
+
+	if ((onlyWhitelisted && !isWhitelisted) || video[ಠ]) {
+		return;
+	}
+	addPlayer(video, hasAudio);
+	overloadAPI(video);
+	video.classList.add('IIV');
+	if (!hasAudio && video.autoplay) {
+		video.play();
+	}
+	if (navigator.platform === 'MacIntel' || navigator.platform === 'Windows') {
+		console.warn('iphone-inline-video is not guaranteed to work in emulated environments');
+	}
+}
+
+enableInlineVideo.isWhitelisted = isWhitelisted;
+
+module.exports = enableInlineVideo;
+},{"poor-mans-symbol":2}],2:[function(require,module,exports){
+'use strict';
+
+var index = typeof Symbol === 'undefined' ? function (description) {
+	return '@' + (description || '@') + Math.random();
+} : Symbol;
+
+module.exports = index;
+},{}],3:[function(require,module,exports){
 // File:src/Three.js
 
 /**
@@ -41744,7 +42102,7 @@ THREE.MorphBlendMesh.prototype.update = function ( delta ) {
 };
 
 
-},{}],2:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -41860,7 +42218,7 @@ _three2.default.DeviceOrientationControls = function (object) {
 
 exports.default = _three2.default.DeviceOrientationControls;
 
-},{"three":1}],3:[function(require,module,exports){
+},{"three":3}],5:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -41872,14 +42230,6 @@ var _three = require('three');
 var _three2 = _interopRequireDefault(_three);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-/**
- * @author qiao / https://github.com/qiao
- * @author mrdoob / http://mrdoob.com
- * @author alteredq / http://alteredqualia.com/
- * @author WestLangley / http://github.com/WestLangley
- * @author erich666 / http://erichaines.com
- */
 
 // This set of controls performs orbiting, dollying (zooming), and panning.
 // Unlike TrackballControls, it maintains the "up" direction object.up (+Y by default).
@@ -42830,7 +43180,7 @@ Object.defineProperties(_three2.default.OrbitControls.prototype, {
 
 exports.default = _three2.default.OrbitControls;
 
-},{"three":1}],4:[function(require,module,exports){
+},{"three":3}],6:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -42869,14 +43219,15 @@ exports.default = function (canvas, url) {
 
     var draw = _panorama.draw;
     var setSize = _panorama.setSize;
+    var toggleStereo = _panorama.toggleStereo;
 
 
     setSize(canvas.width, canvas.height);
 
-    return { setSize: setSize };
+    return { setSize: setSize, toggleStereo: toggleStereo };
 };
 
-},{"./renderer":6,"three":1}],5:[function(require,module,exports){
+},{"./renderer":8,"three":3}],7:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -42899,7 +43250,7 @@ window.pano = pano;
 
 exports.default = pano;
 
-},{"./image-panorama":4,"./video-panorama":7}],6:[function(require,module,exports){
+},{"./image-panorama":6,"./video-panorama":10}],8:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -42918,13 +43269,24 @@ var _OrbitControls = require('./OrbitControls.js');
 
 var _OrbitControls2 = _interopRequireDefault(_OrbitControls);
 
+var _stereo = require('./stereo.js');
+
+var _stereo2 = _interopRequireDefault(_stereo);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 exports.default = function (texture) {
 
+    // texture.generateMipmaps = false
+    // texture.magFilter = THREE.LinearFilter
+    // texture.minFilter = THREE.LinearFilter
+
     var renderer = new _three2.default.WebGLRenderer({ canvas: canvas, antialias: false, alpha: false, depth: false }),
         scene = new _three2.default.Scene(),
+        stereo = new _three2.default.StereoEffect(renderer),
         camera = new _three2.default.PerspectiveCamera(90, canvas.width / canvas.height, 0.1, 1000);
+
+    var useStereo = false;
 
     var uniforms = _three2.default.UniformsUtils.merge([_three2.default.ShaderLib.basic.uniforms]);
     var material = new _three2.default.MeshBasicMaterial({ side: _three2.default.BackSide, map: texture, depthWrite: false });
@@ -42933,7 +43295,6 @@ exports.default = function (texture) {
     material.uniforms = uniforms;
     material.vertexShader = _three2.default.ShaderLib.basic.vertexShader;
     material.fragmentShader = '\n\n        uniform vec3 diffuse;\n        uniform float opacity;\n\n        #ifndef FLAT_SHADED\n\n        varying vec3 vNormal;\n\n        #endif\n\n        #include <common>\n        #include <color_pars_fragment>\n        #include <uv_pars_fragment>\n        #include <uv2_pars_fragment>\n        #include <map_pars_fragment>\n        #include <alphamap_pars_fragment>\n        #include <aomap_pars_fragment>\n        #include <envmap_pars_fragment>\n        #include <fog_pars_fragment>\n        #include <specularmap_pars_fragment>\n        #include <logdepthbuf_pars_fragment>\n        #include <clipping_planes_pars_fragment>\n\n        void main() {\n\n        #include <clipping_planes_fragment>\n\n        vec4 diffuseColor = vec4( diffuse, opacity );\n\n        #include <logdepthbuf_fragment>\n        #ifdef USE_MAP\n\n            vec2 inVUv = vUv;\n            inVUv.x = 1.0 - inVUv.x;\n        \tvec4 texelColor = texture2D( map, inVUv );\n\n        \ttexelColor = mapTexelToLinear( texelColor );\n        \tdiffuseColor *= texelColor;\n\n        #endif\n        #include <color_fragment>\n        #include <alphamap_fragment>\n        #include <alphatest_fragment>\n        #include <specularmap_fragment>\n\n        ReflectedLight reflectedLight;\n        reflectedLight.directDiffuse = vec3( 0.0 );\n        reflectedLight.directSpecular = vec3( 0.0 );\n        reflectedLight.indirectDiffuse = diffuseColor.rgb;\n        reflectedLight.indirectSpecular = vec3( 0.0 );\n\n        #include <aomap_fragment>\n\n        vec3 outgoingLight = reflectedLight.indirectDiffuse;\n\n        #include <envmap_fragment>\n\n        gl_FragColor = vec4( outgoingLight, diffuseColor.a );\n\n        #include <premultiplied_alpha_fragment>\n        #include <tonemapping_fragment>\n        #include <encodings_fragment>\n        #include <fog_fragment>\n\n        }\n    ';
-    material;
 
     var sphere = new _three2.default.Mesh(new _three2.default.SphereBufferGeometry(1, 30, 30), material);
 
@@ -42969,7 +43330,7 @@ exports.default = function (texture) {
     var draw = function draw(_) {
 
         controls.update(_);
-        renderer.render(scene, camera);
+        useStereo ? stereo.render(scene, camera) : renderer.render(scene, camera);
         requestAnimationFrame(draw);
     };
 
@@ -42982,10 +43343,73 @@ exports.default = function (texture) {
         renderer.setSize(w, h);
     };
 
-    return { setSize: setSize, draw: draw };
+    var toggleStereo = function toggleStereo(_) {
+        return useStereo = !useStereo;
+    };
+
+    return { setSize: setSize, draw: draw, toggleStereo: toggleStereo };
 };
 
-},{"./DeviceOrientationControls.js":2,"./OrbitControls.js":3,"three":1}],7:[function(require,module,exports){
+},{"./DeviceOrientationControls.js":4,"./OrbitControls.js":5,"./stereo.js":9,"three":3}],9:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+
+var _three = require('three');
+
+var _three2 = _interopRequireDefault(_three);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+/**
+ * @author alteredq / http://alteredqualia.com/
+ * @authod mrdoob / http://mrdoob.com/
+ * @authod arodic / http://aleksandarrodic.com/
+ * @authod fonserbc / http://fonserbc.github.io/
+*/
+
+_three2.default.StereoEffect = function (renderer) {
+
+	var _stereo = new _three2.default.StereoCamera();
+	_stereo.aspect = 0.5;
+
+	this.setSize = function (width, height) {
+
+		renderer.setSize(width, height);
+	};
+
+	this.render = function (scene, camera) {
+
+		scene.updateMatrixWorld();
+
+		if (camera.parent === null) camera.updateMatrixWorld();
+
+		_stereo.update(camera);
+
+		var size = renderer.getSize();
+
+		renderer.setScissorTest(true);
+		renderer.clear();
+
+		renderer.setScissor(0, 0, size.width / 2, size.height);
+		renderer.setViewport(0, 0, size.width / 2, size.height);
+		renderer.render(scene, _stereo.cameraL);
+
+		renderer.setScissor(size.width / 2, 0, size.width / 2, size.height);
+		renderer.setViewport(size.width / 2, 0, size.width / 2, size.height);
+		renderer.render(scene, _stereo.cameraR);
+
+		renderer.setScissor(0, 0, size.width, size.height);
+		renderer.setViewport(0, 0, size.width, size.height);
+
+		renderer.setScissorTest(false);
+	};
+};
+exports.default = _three2.default.StereoEffect;
+
+},{"three":3}],10:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -42999,6 +43423,10 @@ var _three2 = _interopRequireDefault(_three);
 var _renderer = require('./renderer');
 
 var _renderer2 = _interopRequireDefault(_renderer);
+
+var _iphoneInlineVideo = require('iphone-inline-video');
+
+var _iphoneInlineVideo2 = _interopRequireDefault(_iphoneInlineVideo);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -43018,9 +43446,9 @@ exports.default = function (canvas, url) {
 
     // Video DOM
     var video = document.createElement('video');
+    (0, _iphoneInlineVideo2.default)(video);
     var texture = new _three2.default.VideoTexture(video);
-    var videoWidth = 0;
-    video.controls = 'true';
+    video.webkitPlaysinline = 'true';
     video.crossOrigin = 'anonymous';
     video.src = url;
 
@@ -43034,9 +43462,15 @@ exports.default = function (canvas, url) {
 
     var _panorama = (0, _renderer2.default)(texture);
 
-    var draw = _panorama.draw;
     var setSize = _panorama.setSize;
+    var toggleStereo = _panorama.toggleStereo;
 
+
+    var r = function r(_) {
+        console.log(video.videoWidth);
+        requestAnimationFrame(r);
+    };
+    r();
 
     var toggleMute = function toggleMute(_) {
         return video.muted = !video.muted;
@@ -43048,7 +43482,7 @@ exports.default = function (canvas, url) {
         return video.play();
     };
 
-    return { setSize: setSize, toggleMute: toggleMute, play: play };
+    return { setSize: setSize, toggleMute: toggleMute, play: play, toggleStereo: toggleStereo };
 };
 
-},{"./renderer":6,"three":1}]},{},[5]);
+},{"./renderer":8,"iphone-inline-video":1,"three":3}]},{},[7]);

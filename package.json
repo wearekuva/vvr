@@ -9,6 +9,7 @@
   "author": "Mark Lundin",
   "license": "ISC",
   "dependencies": {
+    "iphone-inline-video": "^1.9.3",
     "three": "^0.77.1"
   },
   "babel": {

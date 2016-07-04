@@ -6,6 +6,9 @@ import stereo from './stereo.js'
 
 export default ( texture ) => {
 
+    // texture.generateMipmaps = false
+    // texture.magFilter = THREE.LinearFilter
+    // texture.minFilter = THREE.LinearFilter
 
     let renderer = new THREE.WebGLRenderer({canvas:canvas, antialias: false, alpha: false, depth: false }),
         scene = new THREE.Scene(),
