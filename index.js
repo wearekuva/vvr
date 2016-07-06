@@ -43285,7 +43285,7 @@ exports.default = function (texture) {
     var renderer = new _three2.default.WebGLRenderer({ canvas: canvas, antialias: false, alpha: false, depth: false }),
         scene = new _three2.default.Scene(),
         stereo = new _three2.default.StereoEffect(renderer),
-        camera = new _three2.default.PerspectiveCamera(90, canvas.width / canvas.height, 0.1, 1000);
+        camera = new _three2.default.PerspectiveCamera(90, canvas.width / canvas.height, 0.1, 1);
 
     var useStereo = false;
 
