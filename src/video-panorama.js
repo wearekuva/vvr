@@ -1,6 +1,7 @@
 import THREE from 'three'
 import panorama from './renderer'
 import makeVideoPlayableInline from 'iphone-inline-video'
+import { supportsInlinePlayback } from './support'
 
 
 let isPOT = n => ( n & ( n - 1 )) === 0 && n !== 0
@@ -16,7 +17,7 @@ export default ( canvas, url ) => {
 
     // Video DOM
     var video = document.createElement('video');
-    // makeVideoPlayableInline( video )
+    if( !supportsInlinePlayback ) makeVideoPlayableInline( video )
     var texture = new THREE.VideoTexture( video )
     video.webkitPlaysinline = 'true'
     video.crossOrigin = 'anonymous'
