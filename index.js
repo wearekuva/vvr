@@ -43232,7 +43232,7 @@ exports.default = function (canvas, url) {
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
-  value: true
+	value: true
 });
 
 var _videoPanorama = require('./video-panorama');
@@ -43245,7 +43245,18 @@ var _imagePanorama2 = _interopRequireDefault(_imagePanorama);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var pano = { video: _videoPanorama2.default, image: _imagePanorama2.default };
+var isSupported = function () {
+
+	try {
+
+		var canvas = document.createElement('canvas');return !!(window.WebGLRenderingContext && (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')));
+	} catch (e) {
+
+		return false;
+	}
+}();
+
+var pano = { video: _videoPanorama2.default, image: _imagePanorama2.default, isSupported: isSupported };
 
 window.pano = pano;
 
