@@ -43245,7 +43245,17 @@ var _imagePanorama2 = _interopRequireDefault(_imagePanorama);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var isSupported = function () {
+var iosVersion = function () {
+	if (/iP(hone|od|ad)/.test(navigator.userAgent)) {
+		// supports iOS 2.0 and later: <http://bit.ly/TJjs1V>
+		var v = navigator.appVersion.match(/OS (\d+)_(\d+)_?(\d+)?/);
+		return parseInt(v[1], 10);
+	} else return Infinity;
+}();
+
+var supportsInlinePlayback = iosVersion >= 10;
+
+var supportsWebGL = function () {
 
 	try {
 
@@ -43255,6 +43265,10 @@ var isSupported = function () {
 		return false;
 	}
 }();
+
+var isSupported = supportsWebGL && supportsInlinePlayback;
+
+if (!isSupported) console.warn('This device device does not support panoramic content');
 
 var pano = { video: _videoPanorama2.default, image: _imagePanorama2.default, isSupported: isSupported };
 
