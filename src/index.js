@@ -2,7 +2,7 @@ import video from './video-panorama'
 import image from './image-panorama'
 
 let iosVersion = ( function() {
-  if (/iP(hone|od|ad)/.test(navigator.userAgent)) {
+  if (/iP(hone|od)/.test(navigator.userAgent)) {
     // supports iOS 2.0 and later: <http://bit.ly/TJjs1V>
     var v = (navigator.appVersion).match(/OS (\d+)_(\d+)_?(\d+)?/);
     return parseInt(v[1], 10)
