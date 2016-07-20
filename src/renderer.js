@@ -13,7 +13,7 @@ export default ( texture ) => {
     let renderer = new THREE.WebGLRenderer({canvas:canvas, antialias: false, alpha: false, depth: false }),
         scene = new THREE.Scene(),
         stereo = new THREE.StereoEffect( renderer ),
-        camera = new THREE.PerspectiveCamera( 90, canvas.width / canvas.height, 0.1, 1 )
+        camera = new THREE.PerspectiveCamera( 90, canvas.width / canvas.height, 0.1, 4 )
 
     let useStereo = false
 
