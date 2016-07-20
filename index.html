@@ -28,7 +28,7 @@
             /*
                 Use any pano defined on the query string, otherwise use a default
             */
-            var url = urlparam( 'url' ) || 'VR_Test_Cubemap_047.jpg'
+            var url = urlparam( 'url' ) || 'https://streams.kolor.com/streams/e7bf77bb-77cc-47e6-92fa-dd8df9ec5851/source.04-1440p_HD.mp4'
             console.log( 'Loading panorama:', url )
 
 
@@ -44,40 +44,48 @@
             */
             var canvas = document.querySelector( 'canvas' )
             var Viewer = isImage ? pano.image : pano.video
-            var player = Viewer( canvas, url )
+
+            if( Viewer.isSupported ){
+                var player = Viewer( canvas, url )
 
 
-            /*
-                Create a resize method that defaults to the page dimension
-            */
-            var resize = function(){
-                player.setSize( window.innerWidth, window.innerHeight )
-            }
-
-            window.addEventListener( 'resize', resize )
-            resize()
-
-
-
-            /*
-                If we're rendering an video panorama, then we need to start
-                playing it. If not, then disable the CTA
-            */
-
-            if( isImage ){
-
-                document.querySelector('.cta').style.display = 'none'
-
-            }else{
-                player.toggleMute()
-                window.onclick = function(){
-                    window.onclick = null
-                    document.querySelector('.cta').style.display = 'none'
-                    player.play()
+                /*
+                    Create a resize method that defaults to the page dimension
+                */
+                var resize = function(){
+                    player.setSize( window.innerWidth, window.innerHeight )
                 }
-            }
 
-            window.player = player
+                window.addEventListener( 'resize', resize )
+                resize()
+
+
+
+                /*
+                    If we're rendering an video panorama, then we need to start
+                    playing it. If not, then disable the CTA
+                */
+
+                if( isImage ){
+
+                    document.querySelector('.cta').style.display = 'none'
+
+                }else{
+                    player.toggleMute()
+                    window.onclick = function(){
+                        window.onclick = null
+                        document.querySelector('.cta').style.display = 'none'
+                        player.play()
+                    }
+                }
+
+                window.player = player
+
+            } else {
+
+                document.querySelector('.cta').innerHTML = 'Not supported'
+
+            }
 
 
         </script>

@@ -1,7 +1,15 @@
 import THREE from 'three'
 import panorama from './renderer'
+import { supportsWebGL } from './support'
 
-export default ( canvas, url ) => {
+const isSupported = supportsWebGL
+
+const imageplayer = ( canvas, url ) => {
+
+    if( !isSupported ){
+        console.warn( 'This device does cannot play panoramic content' )
+        return
+    }
 
 
     if( !canvas ){
@@ -34,3 +42,7 @@ export default ( canvas, url ) => {
     return { setSize, toggleStereo }
 
 }
+
+imageplayer.isSupported = supportsWebGL
+
+export default imageplayer
