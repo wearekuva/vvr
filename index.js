@@ -43195,9 +43195,18 @@ var _renderer = require('./renderer');
 
 var _renderer2 = _interopRequireDefault(_renderer);
 
+var _support = require('./support');
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-exports.default = function (canvas, url) {
+var isSupported = _support.supportsWebGL;
+
+var imageplayer = function imageplayer(canvas, url) {
+
+    if (!isSupported) {
+        console.warn('This device does cannot play panoramic content');
+        return;
+    }
 
     if (!canvas) {
         console.error('No canvas defined');
@@ -43228,7 +43237,11 @@ exports.default = function (canvas, url) {
     return { setSize: setSize, toggleStereo: toggleStereo };
 };
 
-},{"./renderer":8,"three":3}],7:[function(require,module,exports){
+imageplayer.isSupported = _support.supportsWebGL;
+
+exports.default = imageplayer;
+
+},{"./renderer":8,"./support":10,"three":3}],7:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -43286,10 +43299,10 @@ exports.default = function (texture) {
     texture.magFilter = _three2.default.LinearFilter;
     texture.minFilter = _three2.default.LinearFilter;
 
-    var renderer = new _three2.default.WebGLRenderer({ canvas: canvas, antialias: false, alpha: false, depth: false }),
+    var renderer = new _three2.default.WebGLRenderer({ canvas: canvas, antialias: false, alpha: false /*, depth: false*/ }),
         scene = new _three2.default.Scene(),
         stereo = new _three2.default.StereoEffect(renderer),
-        camera = new _three2.default.PerspectiveCamera(90, canvas.width / canvas.height, 0.1, 4);
+        camera = new _three2.default.PerspectiveCamera(90, canvas.width / canvas.height, 0.01, 4);
 
     var useStereo = false;
 
@@ -43321,12 +43334,12 @@ exports.default = function (texture) {
 
     var controls = mouseControls;
 
-    window.addEventListener('deviceorientation', function (o) {
-        if (o.gamma !== null && o.alpha !== null && o.beta !== null) {
-            mouseControls.enabled = false;
-            controls = imuControls;
-        }
-    }, false);
+    // window.addEventListener('deviceorientation', o => {
+    //     if( o.gamma !== null && o.alpha !== null && o.beta !== null ){
+    //         mouseControls.enabled = false
+    //         controls = imuControls
+    //     }
+    // }, false);
 
     // Silly OrbitControls don't work unless there's some distance between the camera and the origin
     camera.position.x = 0.001;
@@ -43470,8 +43483,14 @@ var isPOT = function isPOT(n) {
 var isNPOT = function isNPOT(n) {
     return !isPOT(n);
 };
+var isSupported = _support.supportsInlinePlayback && _support.supportsWebGL;
 
-exports.default = function (canvas, url) {
+var videoplayer = function videoplayer(canvas, url) {
+
+    if (!isSupported) {
+        console.warn('This device does cannot play panoramic content');
+        // return
+    }
 
     if (!canvas) {
         console.error('No canvas defined');
@@ -43517,5 +43536,9 @@ exports.default = function (canvas, url) {
 
     return { setSize: setSize, toggleMute: toggleMute, play: play, toggleStereo: toggleStereo };
 };
+
+videoplayer.isSupported = isSupported;
+
+exports.default = videoplayer;
 
 },{"./renderer":8,"./support":10,"iphone-inline-video":1,"three":3}]},{},[7]);
