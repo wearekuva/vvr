@@ -10,10 +10,10 @@ export default ( texture ) => {
     texture.magFilter = THREE.LinearFilter
     texture.minFilter = THREE.LinearFilter
 
-    let renderer = new THREE.WebGLRenderer({canvas:canvas, antialias: false, alpha: false, depth: false }),
+    let renderer = new THREE.WebGLRenderer({canvas:canvas, antialias: false, alpha: false/*, depth: false*/ }),
         scene = new THREE.Scene(),
         stereo = new THREE.StereoEffect( renderer ),
-        camera = new THREE.PerspectiveCamera( 90, canvas.width / canvas.height, 0.1, 4 )
+        camera = new THREE.PerspectiveCamera( 90, canvas.width / canvas.height, 0.01, 4 )
 
     let useStereo = false
 
@@ -104,12 +104,12 @@ export default ( texture ) => {
 
     let controls = mouseControls
 
-    window.addEventListener('deviceorientation', o => {
-        if( o.gamma !== null && o.alpha !== null && o.beta !== null ){
-            mouseControls.enabled = false
-            controls = imuControls
-        }
-    }, false);
+    // window.addEventListener('deviceorientation', o => {
+    //     if( o.gamma !== null && o.alpha !== null && o.beta !== null ){
+    //         mouseControls.enabled = false
+    //         controls = imuControls
+    //     }
+    // }, false);
 
 
     // Silly OrbitControls don't work unless there's some distance between the camera and the origin

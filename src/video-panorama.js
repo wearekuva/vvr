@@ -1,14 +1,20 @@
 import THREE from 'three'
 import panorama from './renderer'
 import makeVideoPlayableInline from 'iphone-inline-video'
-import { supportsInlinePlayback } from './support'
+import { supportsInlinePlayback, supportsWebGL } from './support'
 
 
 let isPOT = n => ( n & ( n - 1 )) === 0 && n !== 0
 let isNPOT = n => !isPOT( n )
+const isSupported = supportsInlinePlayback && supportsWebGL
 
 
-export default ( canvas, url ) => {
+const videoplayer = ( canvas, url ) => {
+
+    if( !isSupported ){
+        console.warn( 'This device does cannot play panoramic content' )
+        // return
+    }
 
     if( !canvas ){
         console.error( 'No canvas defined' )
@@ -50,3 +56,7 @@ export default ( canvas, url ) => {
     return { setSize, toggleMute, play, toggleStereo }
 
 }
+
+videoplayer.isSupported = isSupported
+
+export default videoplayer
