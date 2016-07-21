@@ -43275,6 +43275,12 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
+var _three = require('three');
+
+var _three2 = _interopRequireDefault(_three);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 exports.default = function (container, video) {
 
     var icon = document.createElement('div');
@@ -43296,23 +43302,42 @@ exports.default = function (container, video) {
     svgDocument.appendChild(shape);
 
     icon.appendChild(svgDocument);
+    container.insertBefore(icon, container.childNodes[0]);
 
-    container.appendChild(icon);
+    var lastPlayPos = 0;
+    var currentPlayPos = 0;
+    var bufferingDetected = false;
 
-    video.addEventListener('loadstart', function (_) {
-        console.log('start loading');
-        icon.style.display = 'initial';
-    });
+    var checkBuffering = function checkBuffering(_) {
 
-    video.addEventListener('canplay', function (_) {
-        console.log('can play');
-        icon.style.display = 'none';
-    });
+        currentPlayPos = video.currentTime;
+
+        var offset = 1 / 60;
+        // if no buffering is currently detected,
+        // and the position does not seem to increase
+        // and the player isn't manually paused...
+        if (!bufferingDetected && currentPlayPos - lastPlayPos < offset * 0.5 && !video.paused) {
+            bufferingDetected = true;
+            icon.style.opacity = '1';
+        }
+
+        // if we were buffering but the player has advanced,
+        // then there is no buffering
+        if (bufferingDetected && currentPlayPos - lastPlayPos > offset * 0.5 && !video.paused) {
+            bufferingDetected = false;
+            icon.style.opacity = '0';
+        }
+        lastPlayPos = currentPlayPos;
+
+        requestAnimationFrame(checkBuffering);
+    };
+
+    checkBuffering();
 
     return icon;
 };
 
-},{}],9:[function(require,module,exports){
+},{"three":3}],9:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -43554,12 +43579,16 @@ var videoplayer = function videoplayer(container, url) {
     // Video DOM
     var video = document.createElement('video');
 
-    video.addEventListener('canplay', function (_) {
-        console.log('can play');
-        video.play();
-    });
+    var canPlay = false;
+    var shouldPlay = false;
 
-    (0, _loadingIcon2.default)(container, video);
+    video.addEventListener('canplaythrough', function (_) {
+        canPlay = true;
+        if (shouldPlay) {
+            (0, _loadingIcon2.default)(container, video);
+            video.play();
+        }
+    });
 
     // if( !supportsInlinePlayback ) makeVideoPlayableInline( video )
     var texture = new _three2.default.VideoTexture(video);
@@ -43588,7 +43617,11 @@ var videoplayer = function videoplayer(container, url) {
     setSize(container.width, container.height);
 
     var play = function play(_) {
-        return video.play();
+        shouldPlay = true;
+        if (canPlay) {
+            (0, _loadingIcon2.default)(container, video);
+            video.play();
+        }
     };
 
     return { setSize: setSize, toggleMute: toggleMute, play: play, toggleStereo: toggleStereo };
