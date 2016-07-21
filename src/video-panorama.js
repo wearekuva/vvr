@@ -28,6 +28,11 @@ const videoplayer = ( container, url ) => {
     // Video DOM
     var video = document.createElement('video');
 
+    video.addEventListener('canplay', _ => {
+        console.log( 'can play' )
+        video.play()
+    });
+
 
     loadingIcon( container, video )
 
