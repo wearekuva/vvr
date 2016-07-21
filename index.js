@@ -43201,15 +43201,15 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var isSupported = _support.supportsWebGL;
 
-var imageplayer = function imageplayer(canvas, url) {
+var imageplayer = function imageplayer(container, url) {
 
     if (!isSupported) {
         console.warn('This device does cannot play panoramic content');
         return;
     }
 
-    if (!canvas) {
-        console.error('No canvas defined');
+    if (!container) {
+        console.error('No container defined');
         return null;
     }
 
@@ -43217,22 +43217,22 @@ var imageplayer = function imageplayer(canvas, url) {
     var image = document.createElement('img');
     var texture = new _three2.default.TextureLoader().load(url, function (t) {
 
-        t.generateMipmaps = true;
-        t.minFilter = _three2.default.LinearMipMapLinearFilter;
-        t.magFilter = _three2.default.LinearFilter;
+        t.generateMipmaps = false;
+        // t.minFilter = THREE.LinearMipMapLinearFilter;
+        // t.magFilter = THREE.LinearFilter;
     });
 
     // texture.generateMipmaps = true
     // texture.needsUpdate = true
 
-    var _panorama = (0, _renderer2.default)(texture);
+    var _panorama = (0, _renderer2.default)(texture, container);
 
     var draw = _panorama.draw;
     var setSize = _panorama.setSize;
     var toggleStereo = _panorama.toggleStereo;
 
 
-    setSize(canvas.width, canvas.height);
+    setSize(container.width, container.height);
 
     return { setSize: setSize, toggleStereo: toggleStereo };
 };
@@ -43241,7 +43241,7 @@ imageplayer.isSupported = _support.supportsWebGL;
 
 exports.default = imageplayer;
 
-},{"./renderer":8,"./support":10,"three":3}],7:[function(require,module,exports){
+},{"./renderer":9,"./support":11,"three":3}],7:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -43268,7 +43268,51 @@ window.pano = pano;
 
 exports.default = pano;
 
-},{"./image-panorama":6,"./support":10,"./video-panorama":11}],8:[function(require,module,exports){
+},{"./image-panorama":6,"./support":11,"./video-panorama":12}],8:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+exports.default = function (container, video) {
+
+    var icon = document.createElement('div');
+    icon.className = 'icon';
+
+    var svgDocument = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svgDocument.setAttributeNS(null, "class", 'spinner');
+    svgDocument.setAttributeNS(null, "width", '65px');
+    svgDocument.setAttributeNS(null, "height", '65px');
+    svgDocument.setAttributeNS(null, "viewBox", "0 0 66 66");
+
+    var shape = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    shape.setAttributeNS(null, "class", 'path');
+    shape.setAttributeNS(null, "cx", '33');
+    shape.setAttributeNS(null, "cy", '33');
+    shape.setAttributeNS(null, "r", '30');
+    shape.setAttributeNS(null, "fill", "none");
+    shape.setAttributeNS(null, "stroke-width", '6');
+    svgDocument.appendChild(shape);
+
+    icon.appendChild(svgDocument);
+
+    container.appendChild(icon);
+
+    video.addEventListener('loadstart', function (_) {
+        console.log('start loading');
+        icon.style.display = 'initial';
+    });
+
+    video.addEventListener('canplay', function (_) {
+        console.log('can play');
+        icon.style.display = 'none';
+    });
+
+    return icon;
+};
+
+},{}],9:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -43293,18 +43337,24 @@ var _stereo2 = _interopRequireDefault(_stereo);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-exports.default = function (texture) {
+exports.default = function (texture, container) {
 
+    container.className = 'vvr';
+
+    var renderer = new _three2.default.WebGLRenderer({ antialias: false, alpha: false /*, depth: false*/ }),
+        scene = new _three2.default.Scene(),
+        stereo = new _three2.default.StereoEffect(renderer),
+        camera = new _three2.default.PerspectiveCamera(70, container.width / container.height, 0.01, 4);
+
+    var useStereo = false;
+
+    renderer.setPixelRatio(devicePixelRatio || 1);
+    container.appendChild(renderer.domElement);
+
+    texture.anistropy = renderer.getMaxAnisotropy();
     texture.generateMipmaps = false;
     texture.magFilter = _three2.default.LinearFilter;
     texture.minFilter = _three2.default.LinearFilter;
-
-    var renderer = new _three2.default.WebGLRenderer({ canvas: canvas, antialias: false, alpha: false /*, depth: false*/ }),
-        scene = new _three2.default.Scene(),
-        stereo = new _three2.default.StereoEffect(renderer),
-        camera = new _three2.default.PerspectiveCamera(90, canvas.width / canvas.height, 0.01, 4);
-
-    var useStereo = false;
 
     var uniforms = _three2.default.UniformsUtils.merge([_three2.default.ShaderLib.basic.uniforms]);
     var material = new _three2.default.MeshBasicMaterial({ side: _three2.default.BackSide, map: texture, depthWrite: false, depthTest: false, transparent: false });
@@ -43368,7 +43418,7 @@ exports.default = function (texture) {
     return { setSize: setSize, draw: draw, toggleStereo: toggleStereo };
 };
 
-},{"./DeviceOrientationControls.js":4,"./OrbitControls.js":5,"./stereo.js":9,"three":3}],9:[function(require,module,exports){
+},{"./DeviceOrientationControls.js":4,"./OrbitControls.js":5,"./stereo.js":10,"three":3}],10:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -43427,7 +43477,7 @@ _three2.default.StereoEffect = function (renderer) {
 };
 exports.default = _three2.default.StereoEffect;
 
-},{"three":3}],10:[function(require,module,exports){
+},{"three":3}],11:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -43454,7 +43504,7 @@ var supportsWebGL = exports.supportsWebGL = function () {
 	}
 }();
 
-},{}],11:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -43475,6 +43525,10 @@ var _iphoneInlineVideo2 = _interopRequireDefault(_iphoneInlineVideo);
 
 var _support = require('./support');
 
+var _loadingIcon = require('./loading-icon');
+
+var _loadingIcon2 = _interopRequireDefault(_loadingIcon);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var isPOT = function isPOT(n) {
@@ -43485,21 +43539,24 @@ var isNPOT = function isNPOT(n) {
 };
 var isSupported = _support.supportsInlinePlayback && _support.supportsWebGL;
 
-var videoplayer = function videoplayer(canvas, url) {
+var videoplayer = function videoplayer(container, url) {
 
     if (!isSupported) {
         console.warn('This device does cannot play panoramic content');
-        // return
+        return;
     }
 
-    if (!canvas) {
-        console.error('No canvas defined');
+    if (!container) {
+        console.error('No container defined');
         return null;
     }
 
     // Video DOM
     var video = document.createElement('video');
-    if (!_support.supportsInlinePlayback) (0, _iphoneInlineVideo2.default)(video);
+
+    (0, _loadingIcon2.default)(container, video);
+
+    // if( !supportsInlinePlayback ) makeVideoPlayableInline( video )
     var texture = new _three2.default.VideoTexture(video);
     video.webkitPlaysinline = 'true';
     video.crossOrigin = 'anonymous';
@@ -43513,22 +43570,17 @@ var videoplayer = function videoplayer(canvas, url) {
     texture.minFilter = _three2.default.LinearFilter;
     texture.magFilter = _three2.default.LinearFilter;
 
-    var _panorama = (0, _renderer2.default)(texture);
+    var _panorama = (0, _renderer2.default)(texture, container);
 
     var setSize = _panorama.setSize;
     var toggleStereo = _panorama.toggleStereo;
 
-    // let r = _ => {
-    //     console.log( video.videoWidth )
-    //     requestAnimationFrame( r )
-    // }
-    // r()
 
     var toggleMute = function toggleMute(_) {
         return video.muted = !video.muted;
     };
 
-    setSize(canvas.width, canvas.height);
+    setSize(container.width, container.height);
 
     var play = function play(_) {
         return video.play();
@@ -43541,4 +43593,4 @@ videoplayer.isSupported = isSupported;
 
 exports.default = videoplayer;
 
-},{"./renderer":8,"./support":10,"iphone-inline-video":1,"three":3}]},{},[7]);
+},{"./loading-icon":8,"./renderer":9,"./support":11,"iphone-inline-video":1,"three":3}]},{},[7]);
