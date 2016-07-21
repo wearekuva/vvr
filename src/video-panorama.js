@@ -2,6 +2,7 @@ import THREE from 'three'
 import panorama from './renderer'
 import makeVideoPlayableInline from 'iphone-inline-video'
 import { supportsInlinePlayback, supportsWebGL } from './support'
+import loadingIcon from './loading-icon'
 
 
 let isPOT = n => ( n & ( n - 1 )) === 0 && n !== 0
@@ -9,21 +10,29 @@ let isNPOT = n => !isPOT( n )
 const isSupported = supportsInlinePlayback && supportsWebGL
 
 
-const videoplayer = ( canvas, url ) => {
+const videoplayer = ( container, url ) => {
 
     if( !isSupported ){
         console.warn( 'This device does cannot play panoramic content' )
-        // return
+        return
     }
 
-    if( !canvas ){
-        console.error( 'No canvas defined' )
+    if( !container ){
+        console.error( 'No container defined' )
         return null
     }
 
+
+
+
     // Video DOM
     var video = document.createElement('video');
-    if( !supportsInlinePlayback ) makeVideoPlayableInline( video )
+
+
+    loadingIcon( container, video )
+
+
+    // if( !supportsInlinePlayback ) makeVideoPlayableInline( video )
     var texture = new THREE.VideoTexture( video )
     video.webkitPlaysinline = 'true'
     video.crossOrigin = 'anonymous'
@@ -38,18 +47,11 @@ const videoplayer = ( canvas, url ) => {
     texture.magFilter = THREE.LinearFilter;
 
 
-    let { setSize, toggleStereo } = panorama( texture )
-
-    // let r = _ => {
-    //     console.log( video.videoWidth )
-    //     requestAnimationFrame( r )
-    // }
-    // r()
-
+    let { setSize, toggleStereo } = panorama( texture, container )
 
     let toggleMute = _ => video.muted = !video.muted
 
-    setSize( canvas.width, canvas.height )
+    setSize( container.width, container.height )
 
     let play = _ => video.play()
 

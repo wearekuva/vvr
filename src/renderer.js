@@ -4,18 +4,25 @@ import OrbitControls from './OrbitControls.js'
 import stereo from './stereo.js'
 
 
-export default ( texture ) => {
+export default ( texture, container ) => {
 
+    container.className = 'vvr'
+
+    let renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false/*, depth: false*/ }),
+        scene = new THREE.Scene(),
+        stereo = new THREE.StereoEffect( renderer ),
+        camera = new THREE.PerspectiveCamera( 70, container.width / container.height, 0.01, 4 )
+
+    let useStereo = false
+
+    renderer.setPixelRatio( devicePixelRatio || 1 )
+    container.appendChild( renderer.domElement )
+
+    texture.anistropy = renderer.getMaxAnisotropy()
     texture.generateMipmaps = false
     texture.magFilter = THREE.LinearFilter
     texture.minFilter = THREE.LinearFilter
 
-    let renderer = new THREE.WebGLRenderer({canvas:canvas, antialias: false, alpha: false/*, depth: false*/ }),
-        scene = new THREE.Scene(),
-        stereo = new THREE.StereoEffect( renderer ),
-        camera = new THREE.PerspectiveCamera( 90, canvas.width / canvas.height, 0.01, 4 )
-
-    let useStereo = false
 
     var uniforms = THREE.UniformsUtils.merge([THREE.ShaderLib.basic.uniforms]);
     let material = new THREE.MeshBasicMaterial({ side: THREE.BackSide, map: texture, depthWrite:false, depthTest:false , transparent:false })

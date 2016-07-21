@@ -4,7 +4,7 @@ import { supportsWebGL } from './support'
 
 const isSupported = supportsWebGL
 
-const imageplayer = ( canvas, url ) => {
+const imageplayer = ( container, url ) => {
 
     if( !isSupported ){
         console.warn( 'This device does cannot play panoramic content' )
@@ -12,8 +12,8 @@ const imageplayer = ( canvas, url ) => {
     }
 
 
-    if( !canvas ){
-        console.error( 'No canvas defined' )
+    if( !container ){
+        console.error( 'No container defined' )
         return null
     }
 
@@ -22,9 +22,9 @@ const imageplayer = ( canvas, url ) => {
     var image = document.createElement('img');
     var texture = new THREE.TextureLoader().load( url, t => {
 
-        t.generateMipmaps = true
-        t.minFilter = THREE.LinearMipMapLinearFilter;
-        t.magFilter = THREE.LinearFilter;
+        t.generateMipmaps = false
+        // t.minFilter = THREE.LinearMipMapLinearFilter;
+        // t.magFilter = THREE.LinearFilter;
 
     })
 
@@ -33,10 +33,10 @@ const imageplayer = ( canvas, url ) => {
     // texture.needsUpdate = true
 
 
-    let { draw, setSize, toggleStereo } = panorama( texture )
+    let { draw, setSize, toggleStereo } = panorama( texture, container )
 
 
-    setSize( canvas.width, canvas.height )
+    setSize( container.width, container.height )
 
 
     return { setSize, toggleStereo }
