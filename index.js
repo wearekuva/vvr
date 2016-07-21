@@ -43554,6 +43554,11 @@ var videoplayer = function videoplayer(container, url) {
     // Video DOM
     var video = document.createElement('video');
 
+    video.addEventListener('canplay', function (_) {
+        console.log('can play');
+        video.play();
+    });
+
     (0, _loadingIcon2.default)(container, video);
 
     // if( !supportsInlinePlayback ) makeVideoPlayableInline( video )
