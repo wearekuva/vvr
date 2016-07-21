@@ -1,6 +1,6 @@
 import THREE from 'three'
 import panorama from './renderer'
-import makeVideoPlayableInline from 'iphone-inline-video'
+// import makeVideoPlayableInline from 'iphone-inline-video'
 import { supportsInlinePlayback, supportsWebGL } from './support'
 import loadingIcon from './loading-icon'
 
