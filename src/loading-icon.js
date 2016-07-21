@@ -1,3 +1,4 @@
+import THREE from 'three'
 
 export default ( container, video ) => {
 
@@ -20,18 +21,47 @@ export default ( container, video ) => {
     svgDocument.appendChild( shape )
 
     icon.appendChild( svgDocument )
+    container.insertBefore( icon, container.childNodes[0]);
 
-    container.appendChild( icon )
+    var lastPlayPos    = 0
+    var currentPlayPos = 0
+    var bufferingDetected = false
 
-    video.addEventListener('loadstart', _ => {
-        console.log( 'start loading' )
-        icon.style.display = 'initial'
-    });
 
-    video.addEventListener('canplay', _ => {
-        console.log( 'can play' )
-        icon.style.display = 'none'
-    });
+    let checkBuffering = _ => {
+
+        currentPlayPos = video.currentTime
+
+        let offset = 1/60
+        // if no buffering is currently detected,
+        // and the position does not seem to increase
+        // and the player isn't manually paused...
+        if (
+                !bufferingDetected
+                && currentPlayPos - lastPlayPos < offset * 0.5
+                && !video.paused
+            ) {
+            bufferingDetected = true
+            icon.style.opacity = '1'
+        }
+
+        // if we were buffering but the player has advanced,
+        // then there is no buffering
+        if (
+            bufferingDetected
+            && currentPlayPos - lastPlayPos > offset * 0.5
+            && !video.paused
+            ) {
+            bufferingDetected = false
+            icon.style.opacity = '0'
+        }
+        lastPlayPos = currentPlayPos
+
+        requestAnimationFrame( checkBuffering )
+
+    }
+
+    checkBuffering()
 
     return icon
 }

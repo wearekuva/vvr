@@ -28,20 +28,24 @@ const videoplayer = ( container, url ) => {
     // Video DOM
     var video = document.createElement('video');
 
-    video.addEventListener('canplay', _ => {
-        console.log( 'can play' )
-        video.play()
+    let canPlay = false
+    let shouldPlay = false
+
+
+    video.addEventListener('canplaythrough', _ => {
+        canPlay = true
+        if( shouldPlay ) {
+            loadingIcon( container, video )
+            video.play()
+        }
     });
-
-
-    loadingIcon( container, video )
-
 
     // if( !supportsInlinePlayback ) makeVideoPlayableInline( video )
     var texture = new THREE.VideoTexture( video )
     video.webkitPlaysinline = 'true'
     video.crossOrigin = 'anonymous'
     video.src = url
+
 
     // let source = document.createElement( 'source')
     // source.src = url
@@ -58,7 +62,14 @@ const videoplayer = ( container, url ) => {
 
     setSize( container.width, container.height )
 
-    let play = _ => video.play()
+
+    let play = _ => {
+        shouldPlay = true
+        if( canPlay ) {
+            loadingIcon( container, video )
+            video.play()
+        }
+    }
 
     return { setSize, toggleMute, play, toggleStereo }
 
