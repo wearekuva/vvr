@@ -25,10 +25,11 @@ export default ( container, video ) => {
 
     var lastPlayPos    = 0
     var currentPlayPos = 0
-    var bufferingDetected = false
+    var bufferingDetected = true
 
 
-    let checkBuffering = _ => {
+
+    let start = _ => {
 
         currentPlayPos = video.currentTime
 
@@ -57,11 +58,9 @@ export default ( container, video ) => {
         }
         lastPlayPos = currentPlayPos
 
-        requestAnimationFrame( checkBuffering )
+        requestAnimationFrame( start )
 
     }
 
-    checkBuffering()
-
-    return icon
+    return { icon, start }
 }
