@@ -2,7 +2,7 @@ import THREE from 'three'
 import panorama from './renderer'
 // import makeVideoPlayableInline from 'iphone-inline-video'
 import { supportsInlinePlayback, supportsWebGL } from './support'
-import loadingIcon from './loading-icon'
+import loadingIcon, { icon } from './loading-icon'
 
 
 let isPOT = n => ( n & ( n - 1 )) === 0 && n !== 0
@@ -32,14 +32,6 @@ const videoplayer = ( container, url ) => {
     let shouldPlay = false
 
 
-    video.addEventListener('canplaythrough', _ => {
-        canPlay = true
-        if( shouldPlay ) {
-            loadingIcon( container, video )
-            video.play()
-        }
-    });
-
     // if( !supportsInlinePlayback ) makeVideoPlayableInline( video )
     var texture = new THREE.VideoTexture( video )
     video.webkitPlaysinline = 'true'
@@ -63,11 +55,38 @@ const videoplayer = ( container, url ) => {
     setSize( container.width, container.height )
 
 
+    let { icon, start } = loadingIcon( container, video )
+    let timeOut
     let play = _ => {
+
         shouldPlay = true
-        if( canPlay ) {
-            loadingIcon( container, video )
-            video.play()
+
+        console.log( 'play ')
+
+        if( video.readyState == 4 ) {
+
+
+            icon.style.opacity = '1'
+            if( timeOut ) clearTimeout( timeOut )
+            timeOut = setTimeout( _ => {
+                console.log('read state')
+                start()
+                video.play()
+            }, 6000 )
+
+        }else{
+
+            video.addEventListener( 'canplaythrough', _ => {
+                
+                icon.style.opacity = '1'
+                if( timeOut ) clearTimeout( timeOut )
+                timeOut = setTimeout( _ => {
+                    console.log('non readystate')
+                    start()
+                    video.play()
+                }, 6000 )
+            });
+
         }
     }
 
