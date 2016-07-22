@@ -35,6 +35,7 @@ const videoplayer = ( container, url ) => {
     // if( !supportsInlinePlayback ) makeVideoPlayableInline( video )
     var texture = new THREE.VideoTexture( video )
     video.webkitPlaysinline = 'true'
+    video.preload='auto'
     video.crossOrigin = 'anonymous'
     video.src = url
 
@@ -67,24 +68,24 @@ const videoplayer = ( container, url ) => {
 
 
             icon.style.opacity = '1'
-            if( timeOut ) clearTimeout( timeOut )
-            timeOut = setTimeout( _ => {
+            // if( timeOut ) clearTimeout( timeOut )
+            // timeOut = setTimeout( _ => {
                 console.log('read state')
                 start()
                 video.play()
-            }, 10000 )
+            // }, 10000 )
 
         }else{
 
             video.addEventListener( 'canplaythrough', _ => {
 
                 icon.style.opacity = '1'
-                if( timeOut ) clearTimeout( timeOut )
-                timeOut = setTimeout( _ => {
+                // if( timeOut ) clearTimeout( timeOut )
+                // timeOut = setTimeout( _ => {
                     console.log('non readystate')
                     start()
                     video.play()
-                }, 10000 )
+                // }, 10000 )
             });
 
         }
