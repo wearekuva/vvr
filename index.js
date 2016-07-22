@@ -42948,9 +42948,9 @@ exports.default = function (container, video) {
 
     var lastPlayPos = 0;
     var currentPlayPos = 0;
-    var bufferingDetected = false;
+    var bufferingDetected = true;
 
-    var checkBuffering = function checkBuffering(_) {
+    var start = function start(_) {
 
         currentPlayPos = video.currentTime;
 
@@ -42971,12 +42971,10 @@ exports.default = function (container, video) {
         }
         lastPlayPos = currentPlayPos;
 
-        requestAnimationFrame(checkBuffering);
+        requestAnimationFrame(start);
     };
 
-    checkBuffering();
-
-    return icon;
+    return { icon: icon, start: start };
 };
 
 },{"three":1}],7:[function(require,module,exports){
@@ -43188,9 +43186,9 @@ var _renderer2 = _interopRequireDefault(_renderer);
 
 var _support = require('./support');
 
-var _loadingIcon = require('./loading-icon');
+var _loadingIcon2 = require('./loading-icon');
 
-var _loadingIcon2 = _interopRequireDefault(_loadingIcon);
+var _loadingIcon3 = _interopRequireDefault(_loadingIcon2);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -43223,14 +43221,6 @@ var videoplayer = function videoplayer(container, url) {
     var canPlay = false;
     var shouldPlay = false;
 
-    video.addEventListener('canplaythrough', function (_) {
-        canPlay = true;
-        if (shouldPlay) {
-            (0, _loadingIcon2.default)(container, video);
-            video.play();
-        }
-    });
-
     // if( !supportsInlinePlayback ) makeVideoPlayableInline( video )
     var texture = new _three2.default.VideoTexture(video);
     video.webkitPlaysinline = 'true';
@@ -43257,11 +43247,39 @@ var videoplayer = function videoplayer(container, url) {
 
     setSize(container.width, container.height);
 
+    var _loadingIcon = (0, _loadingIcon3.default)(container, video);
+
+    var icon = _loadingIcon.icon;
+    var start = _loadingIcon.start;
+
+    var timeOut = void 0;
     var play = function play(_) {
+
         shouldPlay = true;
-        if (canPlay) {
-            (0, _loadingIcon2.default)(container, video);
-            video.play();
+
+        console.log('play ');
+
+        if (video.readyState == 4) {
+
+            icon.style.opacity = '1';
+            if (timeOut) clearTimeout(timeOut);
+            timeOut = setTimeout(function (_) {
+                console.log('read state');
+                start();
+                video.play();
+            }, 10000);
+        } else {
+
+            video.addEventListener('canplaythrough', function (_) {
+
+                icon.style.opacity = '1';
+                if (timeOut) clearTimeout(timeOut);
+                timeOut = setTimeout(function (_) {
+                    console.log('non readystate');
+                    start();
+                    video.play();
+                }, 10000);
+            });
         }
     };
 
