@@ -43224,6 +43224,7 @@ var videoplayer = function videoplayer(container, url) {
     // if( !supportsInlinePlayback ) makeVideoPlayableInline( video )
     var texture = new _three2.default.VideoTexture(video);
     video.webkitPlaysinline = 'true';
+    video.preload = 'auto';
     video.crossOrigin = 'anonymous';
     video.src = url;
 
@@ -43262,25 +43263,25 @@ var videoplayer = function videoplayer(container, url) {
         if (video.readyState == 4) {
 
             icon.style.opacity = '1';
-            if (timeOut) clearTimeout(timeOut);
-            timeOut = setTimeout(function (_) {
-                console.log('read state');
-                start();
-                video.play();
-            }, 10000);
+            // if( timeOut ) clearTimeout( timeOut )
+            // timeOut = setTimeout( _ => {
+            console.log('read state');
+            start();
+            video.play();
+            // }, 10000 )
         } else {
 
-            video.addEventListener('canplaythrough', function (_) {
+                video.addEventListener('canplaythrough', function (_) {
 
-                icon.style.opacity = '1';
-                if (timeOut) clearTimeout(timeOut);
-                timeOut = setTimeout(function (_) {
+                    icon.style.opacity = '1';
+                    // if( timeOut ) clearTimeout( timeOut )
+                    // timeOut = setTimeout( _ => {
                     console.log('non readystate');
                     start();
                     video.play();
-                }, 10000);
-            });
-        }
+                    // }, 10000 )
+                });
+            }
     };
 
     return { setSize: setSize, toggleMute: toggleMute, play: play, toggleStereo: toggleStereo };
