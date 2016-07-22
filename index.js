@@ -43256,32 +43256,9 @@ var videoplayer = function videoplayer(container, url) {
     var timeOut = void 0;
     var play = function play(_) {
 
-        shouldPlay = true;
-
-        console.log('play ');
-
-        if (video.readyState == 4) {
-
-            icon.style.opacity = '1';
-            // if( timeOut ) clearTimeout( timeOut )
-            // timeOut = setTimeout( _ => {
-            console.log('read state');
-            start();
-            video.play();
-            // }, 10000 )
-        } else {
-
-                video.addEventListener('canplaythrough', function (_) {
-
-                    icon.style.opacity = '1';
-                    // if( timeOut ) clearTimeout( timeOut )
-                    // timeOut = setTimeout( _ => {
-                    console.log('non readystate');
-                    start();
-                    video.play();
-                    // }, 10000 )
-                });
-            }
+        icon.style.opacity = '1';
+        start();
+        video.play();
     };
 
     return { setSize: setSize, toggleMute: toggleMute, play: play, toggleStereo: toggleStereo };
