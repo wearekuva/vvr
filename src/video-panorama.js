@@ -39,7 +39,6 @@ const videoplayer = ( container, url ) => {
     video.crossOrigin = 'anonymous'
     video.src = url
 
-
     // let source = document.createElement( 'source')
     // source.src = url
     // source.type= "application/x-mpegURL"
@@ -60,35 +59,10 @@ const videoplayer = ( container, url ) => {
     let timeOut
     let play = _ => {
 
-        shouldPlay = true
+        icon.style.opacity = '1'
+        start()
+        video.play()
 
-        console.log( 'play ')
-
-        if( video.readyState == 4 ) {
-
-
-            icon.style.opacity = '1'
-            // if( timeOut ) clearTimeout( timeOut )
-            // timeOut = setTimeout( _ => {
-                console.log('read state')
-                start()
-                video.play()
-            // }, 10000 )
-
-        }else{
-
-            video.addEventListener( 'canplaythrough', _ => {
-
-                icon.style.opacity = '1'
-                // if( timeOut ) clearTimeout( timeOut )
-                // timeOut = setTimeout( _ => {
-                    console.log('non readystate')
-                    start()
-                    video.play()
-                // }, 10000 )
-            });
-
-        }
     }
 
     return { setSize, toggleMute, play, toggleStereo }
