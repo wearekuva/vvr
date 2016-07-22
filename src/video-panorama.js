@@ -72,19 +72,19 @@ const videoplayer = ( container, url ) => {
                 console.log('read state')
                 start()
                 video.play()
-            }, 6000 )
+            }, 10000 )
 
         }else{
 
             video.addEventListener( 'canplaythrough', _ => {
-                
+
                 icon.style.opacity = '1'
                 if( timeOut ) clearTimeout( timeOut )
                 timeOut = setTimeout( _ => {
                     console.log('non readystate')
                     start()
                     video.play()
-                }, 6000 )
+                }, 10000 )
             });
 
         }
