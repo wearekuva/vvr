@@ -1,362 +1,4 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-/*! npm.im/iphone-inline-video */
-'use strict';
-
-function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
-
-var Symbol = _interopDefault(require('poor-mans-symbol'));
-
-function Intervalometer(cb) {
-	var rafId;
-	var previousLoopTime;
-	function loop(now) {
-		// must be requested before cb() because that might call .stop()
-		rafId = requestAnimationFrame(loop);
-		cb(now - (previousLoopTime || now)); // ms since last call. 0 on start()
-		previousLoopTime = now;
-	}
-	this.start = function () {
-		if (!rafId) { // prevent double starts
-			loop(0);
-		}
-	};
-	this.stop = function () {
-		cancelAnimationFrame(rafId);
-		rafId = null;
-		previousLoopTime = 0;
-	};
-}
-
-function preventEvent(element, eventName, toggleProperty, preventWithProperty) {
-	function handler(e) {
-		if (Boolean(element[toggleProperty]) === Boolean(preventWithProperty)) {
-			e.stopImmediatePropagation();
-			// console.log(eventName, 'prevented on', element);
-		}
-		delete element[toggleProperty];
-	}
-	element.addEventListener(eventName, handler, false);
-
-	// Return handler to allow to disable the prevention. Usage:
-	// const preventionHandler = preventEvent(el, 'click');
-	// el.removeEventHandler('click', preventionHandler);
-	return handler;
-}
-
-function proxyProperty(object, propertyName, sourceObject, copyFirst) {
-	function get() {
-		return sourceObject[propertyName];
-	}
-	function set(value) {
-		sourceObject[propertyName] = value;
-	}
-
-	if (copyFirst) {
-		set(object[propertyName]);
-	}
-
-	Object.defineProperty(object, propertyName, {get: get, set: set});
-}
-
-function proxyEvent(object, eventName, sourceObject) {
-	sourceObject.addEventListener(eventName, function () { return object.dispatchEvent(new Event(eventName)); });
-}
-
-function dispatchEventAsync(element, type) {
-	Promise.resolve().then(function () {
-		element.dispatchEvent(new Event(type));
-	});
-}
-
-// iOS 10 adds support for native inline playback + silent autoplay
-// Also adds unprefixed css-grid. This check essentially excludes
-var isWhitelisted = /iPhone|iPod/i.test(navigator.userAgent) && document.head.style.grid === undefined;
-
-var ಠ = Symbol();
-var ಠevent = Symbol();
-var ಠplay = Symbol('nativeplay');
-var ಠpause = Symbol('nativepause');
-
-/**
- * UTILS
- */
-
-function getAudioFromVideo(video) {
-	var audio = new Audio();
-	proxyEvent(video, 'play', audio);
-	proxyEvent(video, 'playing', audio);
-	proxyEvent(video, 'pause', audio);
-	audio.crossOrigin = video.crossOrigin;
-
-	// 'data:' causes audio.networkState > 0
-	// which then allows to keep <audio> in a resumable playing state
-	// i.e. once you set a real src it will keep playing if it was if .play() was called
-	audio.src = video.src || video.currentSrc || 'data:';
-
-	// if (audio.src === 'data:') {
-	//   TODO: wait for video to be selected
-	// }
-	return audio;
-}
-
-var lastRequests = [];
-var requestIndex = 0;
-var lastTimeupdateEvent;
-
-function setTime(video, time, rememberOnly) {
-	// allow one timeupdate event every 200+ ms
-	if ((lastTimeupdateEvent || 0) + 200 < Date.now()) {
-		video[ಠevent] = true;
-		lastTimeupdateEvent = Date.now();
-	}
-	if (!rememberOnly) {
-		video.currentTime = time;
-	}
-	lastRequests[++requestIndex % 3] = time * 100 | 0 / 100;
-}
-
-function isPlayerEnded(player) {
-	return player.driver.currentTime >= player.video.duration;
-}
-
-function update(timeDiff) {
-	var player = this;
-	// console.log('update', player.video.readyState, player.video.networkState, player.driver.readyState, player.driver.networkState, player.driver.paused);
-	if (player.video.readyState >= player.video.HAVE_FUTURE_DATA) {
-		if (!player.hasAudio) {
-			player.driver.currentTime = player.video.currentTime + (timeDiff * player.video.playbackRate) / 1000;
-			if (player.video.loop && isPlayerEnded(player)) {
-				player.driver.currentTime = 0;
-			}
-		}
-		setTime(player.video, player.driver.currentTime);
-	} else if (player.video.networkState === player.video.NETWORK_IDLE && !player.video.buffered.length) {
-		// this should happen when the source is available but:
-		// - it's potentially playing (.paused === false)
-		// - it's not ready to play
-		// - it's not loading
-		// If it hasAudio, that will be loaded in the 'emptied' handler below
-		player.video.load();
-		// console.log('Will load');
-	}
-
-	// console.assert(player.video.currentTime === player.driver.currentTime, 'Video not updating!');
-
-	if (player.video.ended) {
-		delete player.video[ಠevent]; // allow timeupdate event
-		player.video.pause(true);
-	}
-}
-
-/**
- * METHODS
- */
-
-function play() {
-	// console.log('play');
-	var video = this;
-	var player = video[ಠ];
-
-	// if it's fullscreen, use the native player
-	if (video.webkitDisplayingFullscreen) {
-		video[ಠplay]();
-		return;
-	}
-
-	if (player.driver.src !== 'data:' && player.driver.src !== video.src) {
-		// console.log('src changed on play', video.src);
-		setTime(video, 0, true);
-		player.driver.src = video.src;
-	}
-
-	if (!video.paused) {
-		return;
-	}
-	player.paused = false;
-
-	if (!video.buffered.length) {
-		// .load() causes the emptied event
-		// the alternative is .play()+.pause() but that triggers play/pause events, even worse
-		// possibly the alternative is preventing this event only once
-		video.load();
-	}
-
-	player.driver.play();
-	player.updater.start();
-
-	if (!player.hasAudio) {
-		dispatchEventAsync(video, 'play');
-		if (player.video.readyState >= player.video.HAVE_ENOUGH_DATA) {
-			// console.log('onplay');
-			dispatchEventAsync(video, 'playing');
-		}
-	}
-}
-function pause(forceEvents) {
-	// console.log('pause');
-	var video = this;
-	var player = video[ಠ];
-
-	player.driver.pause();
-	player.updater.stop();
-
-	// if it's fullscreen, the developer the native player.pause()
-	// This is at the end of pause() because it also
-	// needs to make sure that the simulation is paused
-	if (video.webkitDisplayingFullscreen) {
-		video[ಠpause]();
-	}
-
-	if (player.paused && !forceEvents) {
-		return;
-	}
-
-	player.paused = true;
-	if (!player.hasAudio) {
-		dispatchEventAsync(video, 'pause');
-	}
-	if (video.ended) {
-		video[ಠevent] = true;
-		dispatchEventAsync(video, 'ended');
-	}
-}
-
-/**
- * SETUP
- */
-
-function addPlayer(video, hasAudio) {
-	var player = video[ಠ] = {};
-	player.paused = true; // track whether 'pause' events have been fired
-	player.hasAudio = hasAudio;
-	player.video = video;
-	player.updater = new Intervalometer(update.bind(player));
-
-	if (hasAudio) {
-		player.driver = getAudioFromVideo(video);
-	} else {
-		video.addEventListener('canplay', function () {
-			if (!video.paused) {
-				// console.log('oncanplay');
-				dispatchEventAsync(video, 'playing');
-			}
-		});
-		player.driver = {
-			src: video.src || video.currentSrc || 'data:',
-			muted: true,
-			paused: true,
-			pause: function () {
-				player.driver.paused = true;
-			},
-			play: function () {
-				player.driver.paused = false;
-				// media automatically goes to 0 if .play() is called when it's done
-				if (isPlayerEnded(player)) {
-					setTime(video, 0);
-				}
-			},
-			get ended() {
-				return isPlayerEnded(player);
-			}
-		};
-	}
-
-	// .load() causes the emptied event
-	video.addEventListener('emptied', function () {
-		// console.log('driver src is', player.driver.src);
-		var wasEmpty = !player.driver.src || player.driver.src === 'data:';
-		if (player.driver.src && player.driver.src !== video.src) {
-			// console.log('src changed to', video.src);
-			setTime(video, 0, true);
-			player.driver.src = video.src;
-			// playing videos will only keep playing if no src was present when .play()’ed
-			if (wasEmpty) {
-				player.driver.play();
-			} else {
-				player.updater.stop();
-			}
-		}
-	}, false);
-
-	// stop programmatic player when OS takes over
-	video.addEventListener('webkitbeginfullscreen', function () {
-		if (!video.paused) {
-			// make sure that the <audio> and the syncer/updater are stopped
-			video.pause();
-
-			// play video natively
-			video[ಠplay]();
-		} else if (hasAudio && !player.driver.buffered.length) {
-			// if the first play is native,
-			// the <audio> needs to be buffered manually
-			// so when the fullscreen ends, it can be set to the same current time
-			player.driver.load();
-		}
-	});
-	if (hasAudio) {
-		video.addEventListener('webkitendfullscreen', function () {
-			// sync audio to new video position
-			player.driver.currentTime = video.currentTime;
-			// console.assert(player.driver.currentTime === video.currentTime, 'Audio not synced');
-		});
-
-		// allow seeking
-		video.addEventListener('seeking', function () {
-			if (lastRequests.indexOf(video.currentTime * 100 | 0 / 100) < 0) {
-				// console.log('User-requested seeking');
-				player.driver.currentTime = video.currentTime;
-			}
-		});
-	}
-}
-
-function overloadAPI(video) {
-	var player = video[ಠ];
-	video[ಠplay] = video.play;
-	video[ಠpause] = video.pause;
-	video.play = play;
-	video.pause = pause;
-	proxyProperty(video, 'paused', player.driver);
-	proxyProperty(video, 'muted', player.driver, true);
-	proxyProperty(video, 'playbackRate', player.driver, true);
-	proxyProperty(video, 'ended', player.driver);
-	proxyProperty(video, 'loop', player.driver, true);
-	preventEvent(video, 'seeking');
-	preventEvent(video, 'seeked');
-	preventEvent(video, 'timeupdate', ಠevent, false);
-	preventEvent(video, 'ended', ಠevent, false); // prevent occasional native ended events
-}
-
-function enableInlineVideo(video, hasAudio, onlyWhitelisted) {
-	if ( hasAudio === void 0 ) hasAudio = true;
-	if ( onlyWhitelisted === void 0 ) onlyWhitelisted = true;
-
-	if ((onlyWhitelisted && !isWhitelisted) || video[ಠ]) {
-		return;
-	}
-	addPlayer(video, hasAudio);
-	overloadAPI(video);
-	video.classList.add('IIV');
-	if (!hasAudio && video.autoplay) {
-		video.play();
-	}
-	if (navigator.platform === 'MacIntel' || navigator.platform === 'Windows') {
-		console.warn('iphone-inline-video is not guaranteed to work in emulated environments');
-	}
-}
-
-enableInlineVideo.isWhitelisted = isWhitelisted;
-
-module.exports = enableInlineVideo;
-},{"poor-mans-symbol":2}],2:[function(require,module,exports){
-'use strict';
-
-var index = typeof Symbol === 'undefined' ? function (description) {
-	return '@' + (description || '@') + Math.random();
-} : Symbol;
-
-module.exports = index;
-},{}],3:[function(require,module,exports){
 // File:src/Three.js
 
 /**
@@ -42102,7 +41744,7 @@ THREE.MorphBlendMesh.prototype.update = function ( delta ) {
 };
 
 
-},{}],4:[function(require,module,exports){
+},{}],2:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -42218,7 +41860,7 @@ _three2.default.DeviceOrientationControls = function (object) {
 
 exports.default = _three2.default.DeviceOrientationControls;
 
-},{"three":3}],5:[function(require,module,exports){
+},{"three":1}],3:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -43180,7 +42822,7 @@ Object.defineProperties(_three2.default.OrbitControls.prototype, {
 
 exports.default = _three2.default.OrbitControls;
 
-},{"three":3}],6:[function(require,module,exports){
+},{"three":1}],4:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -43195,12 +42837,21 @@ var _renderer = require('./renderer');
 
 var _renderer2 = _interopRequireDefault(_renderer);
 
+var _support = require('./support');
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-exports.default = function (canvas, url) {
+var isSupported = _support.supportsWebGL;
 
-    if (!canvas) {
-        console.error('No canvas defined');
+var imageplayer = function imageplayer(container, url) {
+
+    if (!isSupported) {
+        console.warn('This device does cannot play panoramic content');
+        return;
+    }
+
+    if (!container) {
+        console.error('No container defined');
         return null;
     }
 
@@ -43208,27 +42859,31 @@ exports.default = function (canvas, url) {
     var image = document.createElement('img');
     var texture = new _three2.default.TextureLoader().load(url, function (t) {
 
-        t.generateMipmaps = true;
-        t.minFilter = _three2.default.LinearMipMapLinearFilter;
-        t.magFilter = _three2.default.LinearFilter;
+        t.generateMipmaps = false;
+        // t.minFilter = THREE.LinearMipMapLinearFilter;
+        // t.magFilter = THREE.LinearFilter;
     });
 
     // texture.generateMipmaps = true
     // texture.needsUpdate = true
 
-    var _panorama = (0, _renderer2.default)(texture);
+    var _panorama = (0, _renderer2.default)(texture, container);
 
     var draw = _panorama.draw;
     var setSize = _panorama.setSize;
     var toggleStereo = _panorama.toggleStereo;
 
 
-    setSize(canvas.width, canvas.height);
+    setSize(container.width, container.height);
 
     return { setSize: setSize, toggleStereo: toggleStereo };
 };
 
-},{"./renderer":8,"three":3}],7:[function(require,module,exports){
+imageplayer.isSupported = _support.supportsWebGL;
+
+exports.default = imageplayer;
+
+},{"./renderer":7,"./support":9,"three":1}],5:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -43243,7 +42898,11 @@ var _imagePanorama = require('./image-panorama');
 
 var _imagePanorama2 = _interopRequireDefault(_imagePanorama);
 
+var _support = require('./support');
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+if (!_support.supportsWebGL) console.warn('This device device does not support WebGL and cannot play panoramic content');
 
 var pano = { video: _videoPanorama2.default, image: _imagePanorama2.default };
 
@@ -43251,7 +42910,74 @@ window.pano = pano;
 
 exports.default = pano;
 
-},{"./image-panorama":6,"./video-panorama":10}],8:[function(require,module,exports){
+},{"./image-panorama":4,"./support":9,"./video-panorama":10}],6:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _three = require('three');
+
+var _three2 = _interopRequireDefault(_three);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+exports.default = function (container, video) {
+
+    var icon = document.createElement('div');
+    icon.className = 'icon';
+
+    var svgDocument = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svgDocument.setAttributeNS(null, "class", 'spinner');
+    svgDocument.setAttributeNS(null, "width", '65px');
+    svgDocument.setAttributeNS(null, "height", '65px');
+    svgDocument.setAttributeNS(null, "viewBox", "0 0 66 66");
+
+    var shape = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    shape.setAttributeNS(null, "class", 'path');
+    shape.setAttributeNS(null, "cx", '33');
+    shape.setAttributeNS(null, "cy", '33');
+    shape.setAttributeNS(null, "r", '30');
+    shape.setAttributeNS(null, "fill", "none");
+    shape.setAttributeNS(null, "stroke-width", '6');
+    svgDocument.appendChild(shape);
+
+    icon.appendChild(svgDocument);
+    container.insertBefore(icon, container.childNodes[0]);
+
+    var lastPlayPos = 0;
+    var currentPlayPos = 0;
+    var bufferingDetected = true;
+
+    var start = function start(_) {
+
+        currentPlayPos = video.currentTime;
+
+        var offset = 1 / 60;
+        // if no buffering is currently detected,
+        // and the position does not seem to increase
+        // and the player isn't manually paused...
+        if (!bufferingDetected && currentPlayPos - lastPlayPos < offset * 0.5 && !video.paused) {
+            bufferingDetected = true;
+            icon.style.opacity = '1';
+        }
+
+        // if we were buffering but the player has advanced,
+        // then there is no buffering
+        if (bufferingDetected && currentPlayPos - lastPlayPos > offset * 0.5 && !video.paused) {
+            bufferingDetected = false;
+            icon.style.opacity = '0';
+        }
+        lastPlayPos = currentPlayPos;
+
+        requestAnimationFrame(start);
+    };
+
+    return { icon: icon, start: start };
+};
+
+},{"three":1}],7:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -43276,18 +43002,24 @@ var _stereo2 = _interopRequireDefault(_stereo);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-exports.default = function (texture) {
+exports.default = function (texture, container) {
 
+    container.className = 'vvr';
+
+    var renderer = new _three2.default.WebGLRenderer({ antialias: false, alpha: false /*, depth: false*/ }),
+        scene = new _three2.default.Scene(),
+        stereo = new _three2.default.StereoEffect(renderer),
+        camera = new _three2.default.PerspectiveCamera(70, container.width / container.height, 0.01, 4);
+
+    var useStereo = false;
+
+    renderer.setPixelRatio(devicePixelRatio || 1);
+    container.appendChild(renderer.domElement);
+
+    texture.anistropy = renderer.getMaxAnisotropy();
     texture.generateMipmaps = false;
     texture.magFilter = _three2.default.LinearFilter;
     texture.minFilter = _three2.default.LinearFilter;
-
-    var renderer = new _three2.default.WebGLRenderer({ canvas: canvas, antialias: false, alpha: false, depth: false }),
-        scene = new _three2.default.Scene(),
-        stereo = new _three2.default.StereoEffect(renderer),
-        camera = new _three2.default.PerspectiveCamera(90, canvas.width / canvas.height, 0.1, 1);
-
-    var useStereo = false;
 
     var uniforms = _three2.default.UniformsUtils.merge([_three2.default.ShaderLib.basic.uniforms]);
     var material = new _three2.default.MeshBasicMaterial({ side: _three2.default.BackSide, map: texture, depthWrite: false, depthTest: false, transparent: false });
@@ -43317,12 +43049,12 @@ exports.default = function (texture) {
 
     var controls = mouseControls;
 
-    window.addEventListener('deviceorientation', function (o) {
-        if (o.gamma !== null && o.alpha !== null && o.beta !== null) {
-            mouseControls.enabled = false;
-            controls = imuControls;
-        }
-    }, false);
+    // window.addEventListener('deviceorientation', o => {
+    //     if( o.gamma !== null && o.alpha !== null && o.beta !== null ){
+    //         mouseControls.enabled = false
+    //         controls = imuControls
+    //     }
+    // }, false);
 
     // Silly OrbitControls don't work unless there's some distance between the camera and the origin
     camera.position.x = 0.001;
@@ -43351,7 +43083,7 @@ exports.default = function (texture) {
     return { setSize: setSize, draw: draw, toggleStereo: toggleStereo };
 };
 
-},{"./DeviceOrientationControls.js":4,"./OrbitControls.js":5,"./stereo.js":9,"three":3}],9:[function(require,module,exports){
+},{"./DeviceOrientationControls.js":2,"./OrbitControls.js":3,"./stereo.js":8,"three":1}],8:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -43410,7 +43142,34 @@ _three2.default.StereoEffect = function (renderer) {
 };
 exports.default = _three2.default.StereoEffect;
 
-},{"three":3}],10:[function(require,module,exports){
+},{"three":1}],9:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+	value: true
+});
+
+var iosVersion = function () {
+	if (/iP(hone|od|ad)/.test(navigator.userAgent)) {
+		var v = navigator.appVersion.match(/OS (\d+)_(\d+)_?(\d+)?/);
+		return parseInt(v[1], 10);
+	} else return Infinity;
+}();
+
+var supportsInlinePlayback = exports.supportsInlinePlayback = iosVersion >= 10;
+
+var supportsWebGL = exports.supportsWebGL = function () {
+
+	try {
+
+		var canvas = document.createElement('canvas');return !!(window.WebGLRenderingContext && (canvas.getContext('webgl') || canvas.getContext('experimental-webgl')));
+	} catch (e) {
+
+		return false;
+	}
+}();
+
+},{}],10:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -43425,11 +43184,16 @@ var _renderer = require('./renderer');
 
 var _renderer2 = _interopRequireDefault(_renderer);
 
-var _iphoneInlineVideo = require('iphone-inline-video');
+var _support = require('./support');
 
-var _iphoneInlineVideo2 = _interopRequireDefault(_iphoneInlineVideo);
+var _loadingIcon2 = require('./loading-icon');
+
+var _loadingIcon3 = _interopRequireDefault(_loadingIcon2);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+// import makeVideoPlayableInline from 'iphone-inline-video'
+
 
 var isPOT = function isPOT(n) {
     return (n & n - 1) === 0 && n !== 0;
@@ -43437,19 +43201,30 @@ var isPOT = function isPOT(n) {
 var isNPOT = function isNPOT(n) {
     return !isPOT(n);
 };
+var isSupported = _support.supportsInlinePlayback && _support.supportsWebGL;
 
-exports.default = function (canvas, url) {
+var videoplayer = function videoplayer(container, url) {
 
-    if (!canvas) {
-        console.error('No canvas defined');
+    if (!isSupported) {
+        console.warn('This device does cannot play panoramic content');
+        return;
+    }
+
+    if (!container) {
+        console.error('No container defined');
         return null;
     }
 
     // Video DOM
     var video = document.createElement('video');
-    // makeVideoPlayableInline( video )
+
+    var canPlay = false;
+    var shouldPlay = false;
+
+    // if( !supportsInlinePlayback ) makeVideoPlayableInline( video )
     var texture = new _three2.default.VideoTexture(video);
     video.webkitPlaysinline = 'true';
+    video.preload = 'auto';
     video.crossOrigin = 'anonymous';
     video.src = url;
 
@@ -43461,28 +43236,36 @@ exports.default = function (canvas, url) {
     texture.minFilter = _three2.default.LinearFilter;
     texture.magFilter = _three2.default.LinearFilter;
 
-    var _panorama = (0, _renderer2.default)(texture);
+    var _panorama = (0, _renderer2.default)(texture, container);
 
     var setSize = _panorama.setSize;
     var toggleStereo = _panorama.toggleStereo;
 
-    // let r = _ => {
-    //     console.log( video.videoWidth )
-    //     requestAnimationFrame( r )
-    // }
-    // r()
 
     var toggleMute = function toggleMute(_) {
         return video.muted = !video.muted;
     };
 
-    setSize(canvas.width, canvas.height);
+    setSize(container.width, container.height);
 
+    var _loadingIcon = (0, _loadingIcon3.default)(container, video);
+
+    var icon = _loadingIcon.icon;
+    var start = _loadingIcon.start;
+
+    var timeOut = void 0;
     var play = function play(_) {
-        return video.play();
+
+        icon.style.opacity = '1';
+        start();
+        video.play();
     };
 
     return { setSize: setSize, toggleMute: toggleMute, play: play, toggleStereo: toggleStereo };
 };
 
-},{"./renderer":8,"iphone-inline-video":1,"three":3}]},{},[7]);
+videoplayer.isSupported = isSupported;
+
+exports.default = videoplayer;
+
+},{"./loading-icon":6,"./renderer":7,"./support":9,"three":1}]},{},[5]);
