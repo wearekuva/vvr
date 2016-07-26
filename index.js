@@ -43150,7 +43150,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 
 var iosVersion = function () {
-	if (/iP(hone|od|ad)/.test(navigator.userAgent)) {
+	if (/iP(hone|od)/.test(navigator.userAgent)) {
 		var v = navigator.appVersion.match(/OS (\d+)_(\d+)_?(\d+)?/);
 		return parseInt(v[1], 10);
 	} else return Infinity;
