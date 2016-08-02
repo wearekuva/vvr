@@ -2,7 +2,7 @@
 
 ### Usage
 ```
-npm i thisiskuva/vvr --save
+npm i wearekuva/vvr --save
 ```
 
 For video you'll want this;
