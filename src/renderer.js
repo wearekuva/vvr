@@ -90,7 +90,7 @@ export default ( texture, container ) => {
     `
 
 
-    let sphere = new THREE.Mesh( new THREE.SphereBufferGeometry( 1, 30, 30 ), material )
+    let sphere = new THREE.Mesh( new THREE.SphereBufferGeometry( 1, 60, 60 ), material )
 
 
     // // REMAP STEREO IMAGE
