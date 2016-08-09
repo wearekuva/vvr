@@ -10,7 +10,7 @@ let isNPOT = n => !isPOT( n )
 const isSupported = supportsInlinePlayback && supportsWebGL
 
 
-const videoplayer = ( container, url ) => {
+const videoplayer = ( container, url, mapping = [ 360, 180 ], backgroundColor = 0x000000 ) => {
 
     if( !isSupported ){
         console.warn( 'This device does cannot play panoramic content' )
@@ -48,7 +48,7 @@ const videoplayer = ( container, url ) => {
     texture.magFilter = THREE.LinearFilter;
 
 
-    let { setSize, toggleStereo } = panorama( texture, container )
+    let { setSize, toggleStereo } = panorama( texture, container, mapping, backgroundColor )
 
     let toggleMute = _ => video.muted = !video.muted
 

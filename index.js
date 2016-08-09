@@ -42844,6 +42844,9 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 var isSupported = _support.supportsWebGL;
 
 var imageplayer = function imageplayer(container, url) {
+    var mapping = arguments.length <= 2 || arguments[2] === undefined ? [360, 180] : arguments[2];
+    var backgroundColor = arguments.length <= 3 || arguments[3] === undefined ? 0x000000 : arguments[3];
+
 
     if (!isSupported) {
         console.warn('This device does cannot play panoramic content');
@@ -42867,7 +42870,7 @@ var imageplayer = function imageplayer(container, url) {
     // texture.generateMipmaps = true
     // texture.needsUpdate = true
 
-    var _panorama = (0, _renderer2.default)(texture, container);
+    var _panorama = (0, _renderer2.default)(texture, container, mapping, backgroundColor);
 
     var draw = _panorama.draw;
     var setSize = _panorama.setSize;
@@ -42883,7 +42886,7 @@ imageplayer.isSupported = _support.supportsWebGL;
 
 exports.default = imageplayer;
 
-},{"./renderer":7,"./support":9,"three":1}],5:[function(require,module,exports){
+},{"./renderer":8,"./support":10,"three":1}],5:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -42910,7 +42913,7 @@ window.pano = pano;
 
 exports.default = pano;
 
-},{"./image-panorama":4,"./support":9,"./video-panorama":10}],6:[function(require,module,exports){
+},{"./image-panorama":4,"./support":10,"./video-panorama":11}],6:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -42978,6 +42981,78 @@ exports.default = function (container, video) {
 };
 
 },{"three":1}],7:[function(require,module,exports){
+"use strict";
+
+var PI2 = 2.0 * Math.PI,
+    HALF_PI = Math.PI * 0.5,
+    DEG2RAD = Math.PI / 180.0,
+    RAD2DEG = 180.0 / Math.PI,
+    EPS = 10e-6;
+
+var math = module.exports = {
+
+    //Constants
+    PI2: PI2,
+    HALF_PI: HALF_PI,
+    DEG2RAD: DEG2RAD,
+    RAD2DEG: RAD2DEG,
+    EPS: EPS,
+
+    /*
+     * Lineary interpolates between a->b, using n as a weight
+     */
+    mix: function mix(n, a, b) {
+        return a * (1 - n) + b * n;
+    },
+
+    /*
+     * Linearly maps n from a->b to x->y
+     */
+    map: function map(n, a, b, x, y) {
+        return x + (n - a) * (y - x) / (b - a);
+    },
+
+    /*
+     * Linearly maps n from a->b to 0-1
+     */
+    normalize: function normalize(n, a, b) {
+        return math.map(n, a, b, 0, 1);
+    },
+
+    /*
+     * Clamp n within range a->b
+     */
+    clamp: function clamp(n, a, b) {
+        return n < a ? a : n > b ? b : n;
+    },
+
+    /*
+     * Returns a pseudo-random floating point number within the range a->b, if b is not supplied it
+     * returns within the range 0-a
+    */
+    random: function random(a, b) {
+        return b === undefined ? Math.random() * a : Math.random() * (b - a) + a;
+    },
+
+    /*
+     * Included for completeness. This allows functional style reductions such as `numbers.reduce( max )`.
+     * `Math.max.apply( this, numbers )` alone is bound by the stack size
+     */
+    max: function max(a, b) {
+        return Math.max(a, b);
+    },
+
+    /*
+     * Included for completeness. This allows functional style reductions such as `numbers.reduce( min )`.
+     * `Math.min.apply( this, numbers )` alone is bound by the stack size
+     */
+    min: function min(a, b) {
+        return Math.min(a, b);
+    }
+
+};
+
+},{}],8:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -43000,9 +43075,16 @@ var _stereo = require('./stereo.js');
 
 var _stereo2 = _interopRequireDefault(_stereo);
 
+var _math = require('./math');
+
+var _math2 = _interopRequireDefault(_math);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 exports.default = function (texture, container) {
+    var mapping = arguments.length <= 2 || arguments[2] === undefined ? [360, 180] : arguments[2];
+    var backgroundColor = arguments.length <= 3 || arguments[3] === undefined ? 0x000000 : arguments[3];
+
 
     container.className = 'vvr';
 
@@ -43014,6 +43096,7 @@ exports.default = function (texture, container) {
     var useStereo = false;
 
     renderer.setPixelRatio(devicePixelRatio || 1);
+    renderer.setClearColor(backgroundColor);
     container.appendChild(renderer.domElement);
 
     texture.anistropy = renderer.getMaxAnisotropy();
@@ -43022,22 +43105,19 @@ exports.default = function (texture, container) {
     texture.minFilter = _three2.default.LinearFilter;
 
     var uniforms = _three2.default.UniformsUtils.merge([_three2.default.ShaderLib.basic.uniforms]);
-    var material = new _three2.default.MeshBasicMaterial({ side: _three2.default.BackSide, map: texture, depthWrite: false, depthTest: false, transparent: false });
+    var material = new _three2.default.MeshBasicMaterial({ side: _three2.default.DoubleSide, map: texture, depthWrite: false, depthTest: false, transparent: false });
     material.type = 'ShaderMaterial';
     material.uniforms = uniforms;
     material.uniforms = uniforms;
     material.vertexShader = _three2.default.ShaderLib.basic.vertexShader;
     material.fragmentShader = '\n\n        uniform vec3 diffuse;\n        uniform float opacity;\n\n        #ifndef FLAT_SHADED\n\n        varying vec3 vNormal;\n\n        #endif\n\n        #include <common>\n        #include <color_pars_fragment>\n        #include <uv_pars_fragment>\n        #include <uv2_pars_fragment>\n        #include <map_pars_fragment>\n\n\n\n\n        void main() {\n\n\n\n        vec4 diffuseColor = vec4( diffuse, opacity );\n\n\n        #ifdef USE_MAP\n\n            vec2 inVUv = vUv;\n            inVUv.x = 1.0 - inVUv.x;\n        \tvec4 texelColor = texture2D( map, inVUv );\n\n        \ttexelColor = mapTexelToLinear( texelColor );\n        \tdiffuseColor *= texelColor;\n\n        #endif\n\n\n\n\n\n        ReflectedLight reflectedLight;\n        reflectedLight.directDiffuse = vec3( 0.0 );\n        reflectedLight.directSpecular = vec3( 0.0 );\n        reflectedLight.indirectDiffuse = diffuseColor.rgb;\n        reflectedLight.indirectSpecular = vec3( 0.0 );\n\n\n\n        vec3 outgoingLight = reflectedLight.indirectDiffuse;\n\n\n\n        gl_FragColor = vec4( outgoingLight, diffuseColor.a );\n\n        }\n    ';
 
-    var sphere = new _three2.default.Mesh(new _three2.default.SphereBufferGeometry(1, 30, 30), material);
-
-    // // REMAP STEREO IMAGE
-    //
-    // let uvs = sphere.geometry.attributes.uv
-    // let l = uvs.length / uvs.itemSize
-    // while( l-- > 0 ){
-    //     uvs.setY( l, uvs.array[ ( l * uvs.itemSize ) + 1 ] * 0.5 )
-    // }
+    // Remap the sphere
+    var phiLength = mapping[0] / 360 * Math.PI * 2;
+    var thetaLength = mapping[1] / 180 * Math.PI;
+    var phiStart = -phiLength / 2;
+    var thetaStart = 0;
+    var sphere = new _three2.default.Mesh(new _three2.default.SphereBufferGeometry(1, 60, 60, phiStart, phiLength, thetaStart, thetaLength), material);
 
     // Controls
 
@@ -43083,7 +43163,7 @@ exports.default = function (texture, container) {
     return { setSize: setSize, draw: draw, toggleStereo: toggleStereo };
 };
 
-},{"./DeviceOrientationControls.js":2,"./OrbitControls.js":3,"./stereo.js":8,"three":1}],8:[function(require,module,exports){
+},{"./DeviceOrientationControls.js":2,"./OrbitControls.js":3,"./math":7,"./stereo.js":9,"three":1}],9:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -43142,7 +43222,7 @@ _three2.default.StereoEffect = function (renderer) {
 };
 exports.default = _three2.default.StereoEffect;
 
-},{"three":1}],9:[function(require,module,exports){
+},{"three":1}],10:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -43169,7 +43249,7 @@ var supportsWebGL = exports.supportsWebGL = function () {
 	}
 }();
 
-},{}],10:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -43204,6 +43284,9 @@ var isNPOT = function isNPOT(n) {
 var isSupported = _support.supportsInlinePlayback && _support.supportsWebGL;
 
 var videoplayer = function videoplayer(container, url) {
+    var mapping = arguments.length <= 2 || arguments[2] === undefined ? [360, 180] : arguments[2];
+    var backgroundColor = arguments.length <= 3 || arguments[3] === undefined ? 0x000000 : arguments[3];
+
 
     if (!isSupported) {
         console.warn('This device does cannot play panoramic content');
@@ -43236,7 +43319,7 @@ var videoplayer = function videoplayer(container, url) {
     texture.minFilter = _three2.default.LinearFilter;
     texture.magFilter = _three2.default.LinearFilter;
 
-    var _panorama = (0, _renderer2.default)(texture, container);
+    var _panorama = (0, _renderer2.default)(texture, container, mapping, backgroundColor);
 
     var setSize = _panorama.setSize;
     var toggleStereo = _panorama.toggleStereo;
@@ -43268,4 +43351,4 @@ videoplayer.isSupported = isSupported;
 
 exports.default = videoplayer;
 
-},{"./loading-icon":6,"./renderer":7,"./support":9,"three":1}]},{},[5]);
+},{"./loading-icon":6,"./renderer":8,"./support":10,"three":1}]},{},[5]);

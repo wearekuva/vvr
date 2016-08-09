@@ -4,7 +4,7 @@ import { supportsWebGL } from './support'
 
 const isSupported = supportsWebGL
 
-const imageplayer = ( container, url ) => {
+const imageplayer = ( container, url, mapping = [ 360, 180 ], backgroundColor = 0x000000 ) => {
 
     if( !isSupported ){
         console.warn( 'This device does cannot play panoramic content' )
@@ -33,7 +33,7 @@ const imageplayer = ( container, url ) => {
     // texture.needsUpdate = true
 
 
-    let { draw, setSize, toggleStereo } = panorama( texture, container )
+    let { draw, setSize, toggleStereo } = panorama( texture, container, mapping, backgroundColor )
 
 
     setSize( container.width, container.height )

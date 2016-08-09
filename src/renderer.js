@@ -2,9 +2,10 @@ import THREE from 'three'
 import DeviceOrientationControls from './DeviceOrientationControls.js'
 import OrbitControls from './OrbitControls.js'
 import stereo from './stereo.js'
+import math from './math'
 
 
-export default ( texture, container ) => {
+export default ( texture, container, mapping = [ 360, 180 ], backgroundColor = 0x000000 ) => {
 
     container.className = 'vvr'
 
@@ -16,6 +17,7 @@ export default ( texture, container ) => {
     let useStereo = false
 
     renderer.setPixelRatio( devicePixelRatio || 1 )
+    renderer.setClearColor( backgroundColor )
     container.appendChild( renderer.domElement )
 
     texture.anistropy = renderer.getMaxAnisotropy()
@@ -25,7 +27,7 @@ export default ( texture, container ) => {
 
 
     var uniforms = THREE.UniformsUtils.merge([THREE.ShaderLib.basic.uniforms]);
-    let material = new THREE.MeshBasicMaterial({ side: THREE.BackSide, map: texture, depthWrite:false, depthTest:false , transparent:false })
+    let material = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: texture, depthWrite:false, depthTest:false , transparent:false })
     material.type = 'ShaderMaterial'
     material.uniforms = uniforms
     material.uniforms = uniforms
@@ -89,17 +91,14 @@ export default ( texture, container ) => {
         }
     `
 
+    // Remap the sphere
+    let phiLength   = mapping[0] / 360 * Math.PI * 2
+    let thetaLength = mapping[1] / 180 * Math.PI
+    let phiStart = -phiLength / 2
+    let thetaStart = 0
+    let sphere = new THREE.Mesh( new THREE.SphereBufferGeometry( 1, 60, 60, phiStart, phiLength, thetaStart, thetaLength ), material )
 
-    let sphere = new THREE.Mesh( new THREE.SphereBufferGeometry( 1, 60, 60 ), material )
 
-
-    // // REMAP STEREO IMAGE
-    //
-    // let uvs = sphere.geometry.attributes.uv
-    // let l = uvs.length / uvs.itemSize
-    // while( l-- > 0 ){
-    //     uvs.setY( l, uvs.array[ ( l * uvs.itemSize ) + 1 ] * 0.5 )
-    // }
 
     // Controls
 
