@@ -12,7 +12,7 @@ export default ( texture, container, mapping = [ 360, 180 ], backgroundColor = 0
     let renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false/*, depth: false*/ }),
         scene = new THREE.Scene(),
         stereo = new THREE.StereoEffect( renderer ),
-        camera = new THREE.PerspectiveCamera( 70, container.width / container.height, 0.01, 4 )
+        camera = new THREE.PerspectiveCamera( 70, container.clientWidth / container.clientHeight, 0.01, 4 )
 
     let useStereo = false
 
@@ -96,13 +96,13 @@ export default ( texture, container, mapping = [ 360, 180 ], backgroundColor = 0
     let thetaLength = mapping[1] / 180 * Math.PI
     let phiStart = -phiLength / 2
     let thetaStart = 0
-    let sphere = new THREE.Mesh( new THREE.SphereBufferGeometry( 1, 60, 60, phiStart, phiLength, thetaStart, thetaLength ), material )
+    let sphere = new THREE.Mesh( new THREE.SphereBufferGeometry( 0.5, 60, 60, phiStart, phiLength, thetaStart, thetaLength ), material )
 
 
 
     // Controls
 
-    let imuControls = new DeviceOrientationControls( camera)
+    // let imuControls = new DeviceOrientationControls( camera)
     let mouseControls = new OrbitControls( camera, renderer.domElement )
 
     mouseControls.enableDamping = true
@@ -138,6 +138,17 @@ export default ( texture, container, mapping = [ 360, 180 ], backgroundColor = 0
 
         camera.aspect = w/h
         camera.updateProjectionMatrix()
+
+        let yFov = camera.fov * 0.5 * math.DEG2RAD,
+            xFov = yFov * camera.aspect
+            let vRange = Math.PI * 0.75
+
+        mouseControls.minPolarAngle = ( Math.PI - vRange ) + yFov
+        mouseControls.maxPolarAngle = vRange - yFov
+        mouseControls.minAzimuthAngle = 0 + xFov
+        mouseControls.maxAzimuthAngle = Math.PI - xFov
+
+
         renderer.setSize( w, h )
 
     }
