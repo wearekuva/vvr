@@ -43091,7 +43091,7 @@ exports.default = function (texture, container) {
     var renderer = new _three2.default.WebGLRenderer({ antialias: false, alpha: false /*, depth: false*/ }),
         scene = new _three2.default.Scene(),
         stereo = new _three2.default.StereoEffect(renderer),
-        camera = new _three2.default.PerspectiveCamera(70, container.width / container.height, 0.01, 4);
+        camera = new _three2.default.PerspectiveCamera(70, container.clientWidth / container.clientHeight, 0.01, 4);
 
     var useStereo = false;
 
@@ -43117,11 +43117,11 @@ exports.default = function (texture, container) {
     var thetaLength = mapping[1] / 180 * Math.PI;
     var phiStart = -phiLength / 2;
     var thetaStart = 0;
-    var sphere = new _three2.default.Mesh(new _three2.default.SphereBufferGeometry(1, 60, 60, phiStart, phiLength, thetaStart, thetaLength), material);
+    var sphere = new _three2.default.Mesh(new _three2.default.SphereBufferGeometry(0.5, 60, 60, phiStart, phiLength, thetaStart, thetaLength), material);
 
     // Controls
 
-    var imuControls = new _DeviceOrientationControls2.default(camera);
+    // let imuControls = new DeviceOrientationControls( camera)
     var mouseControls = new _OrbitControls2.default(camera, renderer.domElement);
 
     mouseControls.enableDamping = true;
@@ -43153,6 +43153,16 @@ exports.default = function (texture, container) {
 
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
+
+        var yFov = camera.fov * 0.5 * _math2.default.DEG2RAD,
+            xFov = yFov * camera.aspect;
+        var vRange = Math.PI * 0.75;
+
+        mouseControls.minPolarAngle = Math.PI - vRange + yFov;
+        mouseControls.maxPolarAngle = vRange - yFov;
+        mouseControls.minAzimuthAngle = 0 + xFov;
+        mouseControls.maxAzimuthAngle = Math.PI - xFov;
+
         renderer.setSize(w, h);
     };
 
