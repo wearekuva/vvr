@@ -42056,10 +42056,10 @@ _three2.default.OrbitControls = function (object, domElement) {
 				lastQuaternion.copy(scope.object.quaternion);
 				zoomChanged = false;
 
-				return true;
+				// return true;
 			}
 
-			return false;
+			return spherical;
 		};
 	}();
 
@@ -43117,7 +43117,7 @@ exports.default = function (texture, container) {
     var thetaLength = mapping[1] / 180 * Math.PI;
     var phiStart = -phiLength / 2;
     var thetaStart = 0;
-    var sphere = new _three2.default.Mesh(new _three2.default.SphereBufferGeometry(0.5, 60, 60, phiStart, phiLength, thetaStart, thetaLength), material);
+    var sphere = new _three2.default.Mesh(new _three2.default.SphereBufferGeometry(1, 60, 60, phiStart, phiLength, thetaStart, thetaLength), material);
 
     // Controls
 
@@ -43154,14 +43154,17 @@ exports.default = function (texture, container) {
         camera.aspect = w / h;
         camera.updateProjectionMatrix();
 
-        var yFov = camera.fov * 0.5 * _math2.default.DEG2RAD,
-            xFov = yFov * camera.aspect;
-        var vRange = Math.PI * 0.75;
+        var hFov = 2 * Math.atan(Math.tan(camera.fov * _math2.default.DEG2RAD / 2) * camera.aspect);
 
-        mouseControls.minPolarAngle = Math.PI - vRange + yFov;
-        mouseControls.maxPolarAngle = vRange - yFov;
-        mouseControls.minAzimuthAngle = 0 + xFov;
-        mouseControls.maxAzimuthAngle = Math.PI - xFov;
+        var vRange = Math.PI * 0.2;
+
+        mouseControls.minAzimuthAngle = (-90 + (360 - mapping[0]) * 0.5) * _math2.default.DEG2RAD + hFov * 0.5;
+        mouseControls.maxAzimuthAngle = (mapping[0] * 0.5 + 90) * _math2.default.DEG2RAD - hFov * 0.5;
+        mouseControls.minPolarAngle = camera.fov * _math2.default.DEG2RAD * 0.5;
+        mouseControls.maxPolarAngle = Math.PI - camera.fov * _math2.default.DEG2RAD * 0.5;
+
+        // mouseControls.minAzimuthAngle *= 1.2
+        // mouseControls.maxAzimuthAngle *= 0.8
 
         renderer.setSize(w, h);
     };
