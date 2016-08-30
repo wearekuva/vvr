@@ -193,11 +193,11 @@ THREE.OrbitControls = function ( object, domElement ) {
 				lastQuaternion.copy( scope.object.quaternion );
 				zoomChanged = false;
 
-				return true;
+				// return true;
 
 			}
 
-			return false;
+			return spherical;
 
 		};
 
