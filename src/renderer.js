@@ -96,7 +96,7 @@ export default ( texture, container, mapping = [ 360, 180 ], backgroundColor = 0
     let thetaLength = mapping[1] / 180 * Math.PI
     let phiStart = -phiLength / 2
     let thetaStart = 0
-    let sphere = new THREE.Mesh( new THREE.SphereBufferGeometry( 0.5, 60, 60, phiStart, phiLength, thetaStart, thetaLength ), material )
+    let sphere = new THREE.Mesh( new THREE.SphereBufferGeometry( 1, 60, 60, phiStart, phiLength, thetaStart, thetaLength ), material )
 
 
 
@@ -139,15 +139,18 @@ export default ( texture, container, mapping = [ 360, 180 ], backgroundColor = 0
         camera.aspect = w/h
         camera.updateProjectionMatrix()
 
-        let yFov = camera.fov * 0.5 * math.DEG2RAD,
-            xFov = yFov * camera.aspect
-            let vRange = Math.PI * 0.75
 
-        mouseControls.minPolarAngle = ( Math.PI - vRange ) + yFov
-        mouseControls.maxPolarAngle = vRange - yFov
-        mouseControls.minAzimuthAngle = 0 + xFov
-        mouseControls.maxAzimuthAngle = Math.PI - xFov
+        let hFov = 2 * Math.atan( Math.tan(( camera.fov * math.DEG2RAD ) / 2 ) * camera.aspect );
 
+        let vRange = Math.PI * 0.2
+
+        mouseControls.minAzimuthAngle = (( -90 + (( 360 - mapping[0] ) * 0.5 )) * math.DEG2RAD ) + ( hFov * 0.5 )
+        mouseControls.maxAzimuthAngle = ((( mapping[0] * 0.5 ) + 90 ) * math.DEG2RAD ) - ( hFov * 0.5 )
+        mouseControls.minPolarAngle = ( camera.fov * math.DEG2RAD * 0.5 )
+        mouseControls.maxPolarAngle = Math.PI  - ( camera.fov * math.DEG2RAD * 0.5 )
+
+        // mouseControls.minAzimuthAngle *= 1.2
+        // mouseControls.maxAzimuthAngle *= 0.8
 
         renderer.setSize( w, h )
 

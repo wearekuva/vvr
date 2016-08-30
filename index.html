@@ -32,7 +32,7 @@
             /*
                 Use any pano defined on the query string, otherwise use a default
             */
-            var url = urlparam( 'url' ) || 'https://s3.amazonaws.com/marklundin/vvr/02_Dragonfly_ITEOTA_360_Chapters_ProRes422HQ_NewAudio_180.mp4'
+            var url = urlparam( 'url' ) || '360-main-213deg.png'
             console.log( 'Loading panorama:', url )
 
 
@@ -50,7 +50,7 @@
             var Viewer = isImage ? pano.image : pano.video
 
             if( Viewer.isSupported ){
-                var player = Viewer( container, url, [ 180, 180 ], 0x1a191b )
+                var player = Viewer( container, url, [ 213, 180 ], 0x0131b26 )
 
 
                 /*
